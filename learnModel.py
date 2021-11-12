@@ -11,7 +11,52 @@ tf.VERSION
 import cv2
 import sys
 
-def learnModel(data_root, epochsNb, modelFolder):
+from imageTransformFunctions import recenterImageOnEyes
+
+from numpy.random import randint
+
+def newDataAugmentation(img, resizeSize):
+
+  try:
+    
+    # Random rotation
+    angle_rotation = randint(0,360)
+    rows = len(img)
+    cols = len(img[0])
+    M = cv2.getRotationMatrix2D((cols/2,rows/2),angle_rotation,1)
+    dst = cv2.warpAffine(img,M,(cols,rows))
+    scaleD = int(cols/6)
+    dst = dst[scaleD:(rows-scaleD), scaleD:(rows-scaleD)]
+
+    # Random pixel intensity change
+    changePixelIntensity = randint(-20, 20)
+    dst = np.maximum(dst.astype(int)-changePixelIntensity,0).astype('uint8')
+    
+    # Random crop
+    img = dst
+    crop = randint(5, 10) #24
+    rows = len(img)
+    cols = len(img[0])
+    xmin = crop
+    ymin = crop
+    xmax = cols - crop
+    ymax = rows - crop
+    img = img[ymin:ymax, xmin:xmax]
+    dst = img
+    
+    # All images must be of the same size
+    im1 = cv2.resize(dst, resizeSize)
+    
+    # cv2.imshow("im1", im1)
+    # cv2.waitKey(0)
+    
+  except:
+    im1 = 0
+  
+  return im1
+
+
+def learnModel(data_root, epochsNb, modelFolder, newDataAugm):
 
   classifier_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/2"
   feature_extractor_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/feature_vector/2"
@@ -96,9 +141,13 @@ def learnModel(data_root, epochsNb, modelFolder):
     if name.endswith(".png"): 
       filename = directory_path + name
       im = cv2.imread(filename)
-      im1 = cv2.resize(im,(224,224))
-      im1 = np.array(im1, dtype=np.float32) / 255.0
-      tot1.append(im1)
+      if newDataAugm:
+        im1 = newDataAugmentation(im, (224,224))
+      else:
+        im1 = cv2.resize(im,(224,224))
+      if type(im1) != int:
+        im1 = np.array(im1, dtype=np.float32) / 255.0
+        tot1.append(im1)
   directory_path = data_root + '/rollover/'
   tot2 = []
   directory = os.fsencode(directory_path)
@@ -107,9 +156,13 @@ def learnModel(data_root, epochsNb, modelFolder):
     if name.endswith(".png"): 
       filename = directory_path + name
       im = cv2.imread(filename)
-      im1 = cv2.resize(im,(224,224))
-      im1 = np.array(im1, dtype=np.float32) / 255.0
-      tot2.append(im1)
+      if newDataAugm:
+        im1 = newDataAugmentation(im, (224,224))
+      else:
+        im1 = cv2.resize(im,(224,224))
+      if type(im1) != int:
+        im1 = np.array(im1, dtype=np.float32) / 255.0
+        tot2.append(im1)
   tot = np.concatenate((tot1, tot2), axis=0)
   # tot = np.array(tot)
 
@@ -138,4 +191,9 @@ if __name__ == '__main__':
   epochsNb = int(sys.argv[2])
   modelFolder = sys.argv[3]
   
-  learnModel(data_root, epochsNb, modelFolder)
+  if len(sys.argv) == 5:
+    newDataAugm = int(sys.argv[4])
+  else:
+    newDataAugm = 0
+  
+  learnModel(data_root, epochsNb, modelFolder, newDataAugm)

@@ -1,4 +1,4 @@
-cd $1
+cd ZZoutput/
 rm launch.sh
 for entry in *
 do
