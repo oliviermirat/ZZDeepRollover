@@ -2,6 +2,8 @@ ZZoutput/*/
 model/*
 __pycache__/
 
-initialImages/
-trainingDataset/
+initialImages/*
+trainingDataset/normal/*
+trainingDataset/rollover/*
+
 ZZoutputOld/
