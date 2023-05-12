@@ -1,3 +1,7 @@
 ZZoutput/*/
 model/*
 __pycache__/
+
+initialImages/
+trainingDataset/
+ZZoutputOld/

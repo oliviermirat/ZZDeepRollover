@@ -56,7 +56,7 @@ def newDataAugmentation(img, resizeSize):
   return im1
 
 
-def learnModel(data_root, epochsNb, modelFolder, newDataAugm):
+def learnModel(data_root, epochsNb, modelFolder, newDataAugm=True):
 
   classifier_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/2"
   feature_extractor_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/feature_vector/2"

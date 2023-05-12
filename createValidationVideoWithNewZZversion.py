@@ -7,7 +7,7 @@ import sys
 import json
 import pandas as pd
 
-def createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWells, resultsPercentages, pathToInitialVideo):
+def createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWells, resultsPercentages, pathToInitialVideo, imagesToClassifyHalfDiameter):
 
   ### Loading the images and applying the classifier on them
 
@@ -99,10 +99,10 @@ def createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWe
               cap.set(cv2.CAP_PROP_POS_FRAMES,BoutStart)
               while (k <= BoutEnd):
                 ret, frame = cap.read()
-                yStart = int(ywell+item['HeadY'][k-BoutStart]-30)
-                yEnd   = int(ywell+item['HeadY'][k-BoutStart]+30)
-                xStart = int(xwell+item['HeadX'][k-BoutStart]-30)
-                xEnd   = int(xwell+item['HeadX'][k-BoutStart]+30)
+                yStart = int(ywell+item['HeadY'][k-BoutStart]-imagesToClassifyHalfDiameter)
+                yEnd   = int(ywell+item['HeadY'][k-BoutStart]+imagesToClassifyHalfDiameter)
+                xStart = int(xwell+item['HeadX'][k-BoutStart]-imagesToClassifyHalfDiameter)
+                xEnd   = int(xwell+item['HeadX'][k-BoutStart]+imagesToClassifyHalfDiameter)
                 frame = frame[yStart:yEnd, xStart:xEnd]
                 
                 if ret == True:

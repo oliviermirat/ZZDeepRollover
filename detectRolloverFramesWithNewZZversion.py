@@ -15,8 +15,8 @@ from imageTransformFunctions import recenterImageOnEyes
 from createValidationVideoWithNewZZversion import createValidationVideoWithNewZZversion
 # import pdb
 
-def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, recenterImageWindow, comparePredictedResultsToManual, validationVideo, pathToInitialVideo):
-
+def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, recenterImageWindow, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, imagesToClassifyHalfDiameter):
+  
   if (medianRollingMean % 2 == 0):
     sys.exit("medianRollingMean must be an odd number")
 
@@ -119,10 +119,10 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
               cap.set(cv2.CAP_PROP_POS_FRAMES,BoutStart)
               while (k <= BoutEnd):
                 ret, frame = cap.read()
-                yStart = int(ywell+item['HeadY'][k-BoutStart]-30)
-                yEnd   = int(ywell+item['HeadY'][k-BoutStart]+30)
-                xStart = int(xwell+item['HeadX'][k-BoutStart]-30)
-                xEnd   = int(xwell+item['HeadX'][k-BoutStart]+30)
+                yStart = int(ywell+item['HeadY'][k-BoutStart]-imagesToClassifyHalfDiameter)
+                yEnd   = int(ywell+item['HeadY'][k-BoutStart]+imagesToClassifyHalfDiameter)
+                xStart = int(xwell+item['HeadX'][k-BoutStart]-imagesToClassifyHalfDiameter)
+                xEnd   = int(xwell+item['HeadX'][k-BoutStart]+imagesToClassifyHalfDiameter)
                 frame = frame[yStart:yEnd, xStart:xEnd]
                 if ret == True:
                   if recenterImageWindow:
@@ -139,6 +139,7 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
                   break
                 k = k + 1
       frames = np.array(frames)
+      print("dimension of first frame:", len(frames[0]), len(frames[0][0]))
       resultRaw = model.predict(frames)
       result = np.argmax(resultRaw, axis=-1)
       rollovers[framesNumber] = result
@@ -157,7 +158,7 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
     np.savetxt(os.path.join(os.path.join(path, videoName), 'rolloverPercentages.txt'), rolloverPercentageAllWells, fmt='%f')
     
     if validationVideo:
-      createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWells, rolloverPercentageAllWells, pathToInitialVideo)
+      createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWells, rolloverPercentageAllWells, pathToInitialVideo, imagesToClassifyHalfDiameter)
     
     if comparePredictedResultsToManual:
     
@@ -265,11 +266,11 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
       boutNumberAllWellsInBetweenRemoved       = []
       # pdb.set_trace()
       for idx, inBetweens in enumerate(inBetweensAllWells):
-        rolloversMedFiltAllWellsInBetweenRemoved.extend(np.delete(rolloversMedFiltAllWells[idx], inBetweens).tolist())
-        rolloversAllWellsInBetweenRemoved.extend(np.delete(rolloversAllWells[idx], inBetweens).tolist())
-        trueRolloverAllWellsInBetweenRemoved.extend(np.delete(trueRolloverAllWells[idx], inBetweens).tolist())
-        wellNumberAllWellsInBetweenRemoved.extend(np.delete(wellNumberAllWells[idx], inBetweens).tolist())
-        boutNumberAllWellsInBetweenRemoved.extend(np.delete(boutNumberAllWells[idx], inBetweens).tolist())
+        rolloversMedFiltAllWellsInBetweenRemoved.extend(np.delete(rolloversMedFiltAllWells[idx], np.array(inBetweens).astype(int).tolist()).tolist())
+        rolloversAllWellsInBetweenRemoved.extend(np.delete(rolloversAllWells[idx], np.array(inBetweens).astype(int).tolist()).tolist())
+        trueRolloverAllWellsInBetweenRemoved.extend(np.delete(trueRolloverAllWells[idx], np.array(inBetweens).astype(int).tolist()).tolist())
+        wellNumberAllWellsInBetweenRemoved.extend(np.delete(wellNumberAllWells[idx], np.array(inBetweens).astype(int).tolist()).tolist())
+        boutNumberAllWellsInBetweenRemoved.extend(np.delete(boutNumberAllWells[idx], np.array(inBetweens).astype(int).tolist()).tolist())
       rolloversMedFiltAllWellsInBetweenRemoved = np.array(rolloversMedFiltAllWellsInBetweenRemoved)
       rolloversAllWellsInBetweenRemoved        = np.array(rolloversAllWellsInBetweenRemoved)
       trueRolloverAllWellsInBetweenRemoved     = np.array(trueRolloverAllWellsInBetweenRemoved)
@@ -320,13 +321,18 @@ if __name__ == '__main__':
 
   __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
 
-  path = sys.argv[1]
-  videoName = sys.argv[2]
-  pathToInitialVideo = sys.argv[3]
-  medianRollingMean = 5
-  recenterImageWindow = 24
-  comparePredictedResultsToManual = 0
-  validationVideo = 1
+  path                         = sys.argv[1]
+  videoName                    = sys.argv[2]
+  pathToInitialVideo           = sys.argv[3]
+  # Size of image on which DL algorithm will be applied will be 2*(recenterImageWindow-int(2*recenterImageWindow/6))
+  recenterImageWindow          = int(sys.argv[4])    if len(sys.argv) >= 5 else 24
+  # Approximate half dimension of validation video and of initial image extracted
+  imagesToClassifyHalfDiameter = int(sys.argv[5])    if len(sys.argv) >= 6 else 100
+  # Window of median rolling mean applied on rollover detected
+  medianRollingMean            = int(sys.argv[6])    if len(sys.argv) >= 7 else 5
+  validationVideo              = int(sys.argv[7])    if len(sys.argv) >= 8 else 1
+  comparePredictedResultsToManual = int(sys.argv[8]) if len(sys.argv) >= 9 else 0
+  
 
-  detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, recenterImageWindow, comparePredictedResultsToManual, validationVideo, pathToInitialVideo)
+  detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, recenterImageWindow, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, imagesToClassifyHalfDiameter)
   
