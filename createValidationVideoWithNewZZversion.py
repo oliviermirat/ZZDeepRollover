@@ -1,4 +1,5 @@
 from __future__ import absolute_import, division, print_function
+import videoFormatConversion.zzVideoReading as zzVideoReading
 import matplotlib.pylab as plt
 import numpy as np
 import os
@@ -31,7 +32,7 @@ def createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWe
   exists = os.path.isfile(rolloverFrameFile)
   if exists:
     videoPath2 = pathToInitialVideo
-    cap = cv2.VideoCapture(videoPath2)
+    cap = zzVideoReading.VideoCapture(videoPath2)
     videoLength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     
     fileRollover = open(rolloverFrameFile, 'r')
@@ -88,7 +89,7 @@ def createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWe
       videoPath2 = pathToInitialVideo
       if (len(wellPoissMouv[i])):
         if (len(wellPoissMouv[i][0])):
-          cap = cv2.VideoCapture(videoPath2)
+          cap = zzVideoReading.VideoCapture(videoPath2)
           nbMouv = len(wellPoissMouv[i][0])
           for j in range(0,nbMouv):
             if (len(wellPoissMouv[i][0][j])):

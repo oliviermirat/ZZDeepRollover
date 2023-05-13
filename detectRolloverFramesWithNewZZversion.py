@@ -1,4 +1,5 @@
 from __future__ import absolute_import, division, print_function
+import videoFormatConversion.zzVideoReading as zzVideoReading
 import matplotlib.pylab as plt
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -102,7 +103,7 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
       videoPath2 = pathToInitialVideo
       if (len(wellPoissMouv[i])):
         if (len(wellPoissMouv[i][0])):
-          cap = cv2.VideoCapture(videoPath2)
+          cap = zzVideoReading.VideoCapture(videoPath2)
           videoLength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
           rollovers = np.zeros((videoLength))
           rolloverPercentage = np.zeros((videoLength))

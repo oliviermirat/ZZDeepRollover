@@ -2,6 +2,7 @@ import json
 import os
 import cv2
 import shutil
+import videoFormatConversion.zzVideoReading as zzVideoReading
 from pandas import DataFrame, read_csv
 import pandas as pd
 import numpy as np
@@ -63,7 +64,7 @@ def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassif
       videoPath2 = path+videoName+'/'+videoName+'.avi'
       if (len(wellPoissMouv[i])):
         if (len(wellPoissMouv[i][0])):
-          cap = cv2.VideoCapture(videoPath2)
+          cap = zzVideoReading.VideoCapture(videoPath2)
           nbMouv = len(wellPoissMouv[i][0])
           
           # going through each movement for the well
