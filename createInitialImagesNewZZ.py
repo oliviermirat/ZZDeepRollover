@@ -9,7 +9,7 @@ import numpy as np
 import csv
 import sys
 
-def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassifyHalfDiameter):
+def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassifyHalfDiameter, backgroundRemoval=0):
   
   recenterImageWindow = 0
   
@@ -24,6 +24,11 @@ def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassif
   csvFileName = videoName
 
   videoPath = path + videoName + '/results_' + videoName + '.txt'
+  
+  if backgroundRemoval:
+    backgroundPath = path + videoName + '/background.png'
+    background     = cv2.imread(backgroundPath)
+    background     = cv2.cvtColor(background, cv2.COLOR_BGR2GRAY)
   
   if (os.path.isfile(videoPath)):
 
@@ -61,7 +66,10 @@ def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassif
       if ywell < 0:
         ywell = 0
       
-      videoPath2 = path+videoName+'/'+videoName+'.avi'
+      if os.path.exists(path+videoName+'/'+videoName+'.avi'):
+        videoPath2 = path+videoName+'/'+videoName+'.avi'
+      else:
+        videoPath2 = path+videoName+'/'+videoName+'/'+videoName+'.seq'
       if (len(wellPoissMouv[i])):
         if (len(wellPoissMouv[i][0])):
           cap = zzVideoReading.VideoCapture(videoPath2)
@@ -78,10 +86,25 @@ def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassif
               while (k <= BoutEnd):
                 ret, frame = cap.read()
                 
+                if backgroundRemoval:
+                  minPixelDiffForBackExtract = 15
+                  frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                  putToWhite = ( frame.astype('int32') >= (background.astype('int32') - minPixelDiffForBackExtract) )
+                  frame[putToWhite] = int(np.mean(np.mean(frame)))
+                  frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
+                
                 yStart = int(ywell+item['HeadY'][k-BoutStart]-imagesToClassifyHalfDiameter)
                 yEnd   = int(ywell+item['HeadY'][k-BoutStart]+imagesToClassifyHalfDiameter)
                 xStart = int(xwell+item['HeadX'][k-BoutStart]-imagesToClassifyHalfDiameter)
                 xEnd   = int(xwell+item['HeadX'][k-BoutStart]+imagesToClassifyHalfDiameter)
+                if xStart < 0:
+                  xStart = 0
+                if yStart < 0:
+                  yStart = 0
+                if xEnd >= len(frame[0]):
+                  xEnd = len(frame[0]) - 1
+                if yEnd >= len(frame):
+                  yEnd = len(frame) - 1
                 frame = frame[yStart:yEnd, xStart:xEnd]
                 if ret == True:
                   if recenterImageWindow:

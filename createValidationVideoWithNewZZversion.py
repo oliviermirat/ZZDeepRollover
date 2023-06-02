@@ -106,7 +106,8 @@ def createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWe
                 xEnd   = int(xwell+item['HeadX'][k-BoutStart]+imagesToClassifyHalfDiameter)
                 frame = frame[yStart:yEnd, xStart:xEnd]
                 
-                if ret == True:
+                if ret == True and resizeScale*frame_width > 0 and resizeScale*frame_height > 0 and xEnd - xStart > 1 and yEnd - yStart > 1 and len(frame) and len(frame[0]):
+                
                   frame2 = cv2.resize(frame, (resizeScale*frame_width, resizeScale*frame_height))
                   
                   frame3 = np.zeros((frame2.shape[0] + ext1, frame2.shape[1] + ext2, 3), np.uint8)

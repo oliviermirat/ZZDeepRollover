@@ -46,4 +46,4 @@ for vidTrain in trainingVid:
   createTrainOrTestDataset('initialImages/',vidTrain,'trainingDataset',numberOfRotationsDataAugmentationTraining,recenterImageWindow)
 
 # Transfert learning
-learnModel('trainingDataset', epochsNbTraining, 'model')
+learnModel('trainingDataset', epochsNbTraining, 'model', False)
