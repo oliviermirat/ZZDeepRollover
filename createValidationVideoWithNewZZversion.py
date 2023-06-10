@@ -1,5 +1,5 @@
 from __future__ import absolute_import, division, print_function
-import videoFormatConversion.zzVideoReading as zzVideoReading
+import zzVideoReading as zzVideoReading
 import matplotlib.pylab as plt
 import numpy as np
 import os

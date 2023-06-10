@@ -1,12 +1,21 @@
-from __future__ import absolute_import, division, print_function
-import videoFormatConversion.zzVideoReading as zzVideoReading
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.optim import lr_scheduler
+import torch.backends.cudnn as cudnn
+import torchvision
+from torchvision import datasets, models, transforms
+import time
+from tempfile import TemporaryDirectory
+
+from PIL import Image
+to_pil = transforms.ToPILImage()
+
+# from __future__ import absolute_import, division, print_function
+import zzVideoReading as zzVideoReading
 import matplotlib.pylab as plt
-import tensorflow as tf
-import tensorflow_hub as hub
-from tensorflow.python.keras import layers
 import numpy as np
 import os
-tf.VERSION
 import cv2
 import sys
 import json
@@ -16,64 +25,37 @@ from imageTransformFunctions import recenterImageOnEyes
 from createValidationVideoWithNewZZversion import createValidationVideoWithNewZZversion
 # import pdb
 
-def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, recenterImageWindow, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, imagesToClassifyHalfDiameter, backgroundRemoval=0):
+def runModelOnFrames(frames, model, resizeCropDimension):
+  
+  frames = np.array(frames)
+      
+  data_transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize(resizeCropDimension),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485], [0.229])
+  ])
+  
+  outputs = model(torch.stack([data_transform(frames[i].astype(np.uint8)) for i in range(0, len(frames))]))
+  _, result = torch.max(outputs, 1)
+  
+  binary = result
+  probabilities = outputs.detach().numpy()[:, 0]
+      
+  return [binary, probabilities]
+
+
+def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, recenterImageWindow, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, resizeCropDimension, backgroundRemoval=0):
   
   if (medianRollingMean % 2 == 0):
     sys.exit("medianRollingMean must be an odd number")
 
   ### Loading the classifier
-
-  classifier_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/2"
-  feature_extractor_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/feature_vector/2"
-
-  def classifier(x):
-    classifier_module = hub.Module(classifier_url)
-    return classifier_module(x)
-    
-  IMAGE_SIZE = hub.get_expected_image_size(hub.Module(classifier_url))
-
-  classifier_layer = layers.Lambda(classifier, input_shape = IMAGE_SIZE+[3])
-  classifier_model = tf.keras.Sequential([classifier_layer])
-  classifier_model.summary()
-
-  from tensorflow.python.keras import backend as K
-  sess = K.get_session()
-  init = tf.global_variables_initializer()
-
-  sess.run(init)
-
-  ####
-
-  def feature_extractor(x):
-    feature_extractor_module = hub.Module(feature_extractor_url)
-    return feature_extractor_module(x)
-
-  IMAGE_SIZE = hub.get_expected_image_size(hub.Module(feature_extractor_url))
-
-  features_extractor_layer = layers.Lambda(feature_extractor, input_shape=IMAGE_SIZE+[3])
-
-  features_extractor_layer.trainable = False
-
-  model = tf.keras.Sequential([
-    features_extractor_layer,
-    layers.Dense(2, activation='softmax')
-  ])
-  model.summary()
-
-  init = tf.global_variables_initializer()
-  sess.run(init)
-
-  ### 
-
-  model.compile(
-    optimizer=tf.train.AdamOptimizer(), 
-    loss='categorical_crossentropy',
-    metrics=['accuracy'])
-
-  checkpoint_path = "model/cp.ckpt"
-  checkpoint_dir = os.path.dirname(checkpoint_path)
-
-  model.load_weights(checkpoint_path)
+  model = models.resnet50()
+  num_ftrs = model.fc.in_features
+  model.fc = nn.Linear(num_ftrs, 2)
+  model.load_state_dict(torch.load(os.path.join('model', 'model.pth')))
+  model.eval()
   
   ### Background extraction
   if backgroundRemoval:
@@ -99,6 +81,7 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
     rolloverPercentageAllWells = []
     # going through each well in super structure
     for i in range(0,nbWell):
+      print("Running rollover detection on video", videoName, "for well:", i)
       xwell = wellPositions[i]['topLeftX']
       ywell = wellPositions[i]['topLeftY']
       if xwell < 0:
@@ -114,6 +97,8 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
           rolloverPercentage = np.zeros((videoLength))
           frames = []
           framesNumber = []
+          allBinary        = np.array([])
+          allProbabilities = np.array([])
           nbMouv = len(wellPoissMouv[i][0])
           # going through each movement for the well
           for j in range(0,nbMouv):
@@ -133,10 +118,10 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
                   frame[putToWhite] = int(np.mean(np.mean(frame)))
                   frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)                
                 
-                yStart = int(ywell+item['HeadY'][k-BoutStart]-imagesToClassifyHalfDiameter)
-                yEnd   = int(ywell+item['HeadY'][k-BoutStart]+imagesToClassifyHalfDiameter)
-                xStart = int(xwell+item['HeadX'][k-BoutStart]-imagesToClassifyHalfDiameter)
-                xEnd   = int(xwell+item['HeadX'][k-BoutStart]+imagesToClassifyHalfDiameter)
+                yStart = int(ywell+item['HeadY'][k-BoutStart]-int(resizeCropDimension/2))
+                yEnd   = int(ywell+item['HeadY'][k-BoutStart]+int(resizeCropDimension/2))
+                xStart = int(xwell+item['HeadX'][k-BoutStart]-int(resizeCropDimension/2))
+                xEnd   = int(xwell+item['HeadX'][k-BoutStart]+int(resizeCropDimension/2))
                 if xStart < 0:
                   xStart = 0
                 if yStart < 0:
@@ -149,6 +134,7 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
                 if ret == True:
                   if recenterImageWindow:
                     frame = recenterImageOnEyes(frame,recenterImageWindow)
+                  # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                   rows = len(frame)
                   cols = len(frame[0])
                   scaleD = int(cols/6)
@@ -157,22 +143,32 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
                   frame = np.array(frame, dtype=np.float32) / 255.0
                   frames.append(frame)
                   framesNumber.append(k)
+                  
+                  if len(frames) >= 10:
+                    [binary, probabilities] = runModelOnFrames(frames, model, resizeCropDimension)
+                    allBinary               = np.append(allBinary, binary)
+                    allProbabilities        = np.append(allProbabilities, probabilities)
+                    frames = []
+                
                 else:
                   break
                 k = k + 1
-      frames = np.array(frames)
-      print("dimension of first frame:", len(frames[0]), len(frames[0][0]))
-      resultRaw = model.predict(frames)
-      result = np.argmax(resultRaw, axis=-1)
-      rollovers[framesNumber] = result
-      rolloverPercentage[framesNumber] = resultRaw[:,1]
-      rolloversMedFiltSeries = (pd.Series(rollovers)).rolling(medianRollingMean).median()
-      for i in range(0, medianRollingMean):
-        rolloversMedFiltSeries[i] = 0
-      rolloversMedFiltSeries = np.roll(rolloversMedFiltSeries,int(-((medianRollingMean-1)/2)))
-      rolloversAllWells.append(rollovers)
-      rolloversMedFiltAllWells.append(rolloversMedFiltSeries)
-      rolloverPercentageAllWells.append(rolloverPercentage)
+        
+        if len(frames) > 0:
+          [binary, probabilities] = runModelOnFrames(frames, model, resizeCropDimension)
+          allBinary               = np.append(allBinary, binary)
+          allProbabilities        = np.append(allProbabilities, probabilities)
+        
+        rollovers[framesNumber] = allBinary
+        rolloverPercentage[framesNumber] = allProbabilities
+        rolloversMedFiltSeries = (pd.Series(rollovers)).rolling(medianRollingMean).median()
+        for i in range(0, medianRollingMean):
+          rolloversMedFiltSeries[i] = 0
+        rolloversMedFiltSeries = np.roll(rolloversMedFiltSeries,int(-((medianRollingMean-1)/2)))
+        rolloversAllWells.append(rollovers)
+        rolloversMedFiltAllWells.append(rolloversMedFiltSeries)
+        rolloverPercentageAllWells.append(rolloverPercentage)
+    
     rolloversAllWells = np.array(rolloversAllWells)
     rolloversMedFiltAllWells = np.array(rolloversMedFiltAllWells)
     cap.release()
@@ -180,7 +176,7 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
     np.savetxt(os.path.join(os.path.join(path, videoName), 'rolloverPercentages.txt'), rolloverPercentageAllWells, fmt='%f')
     
     if validationVideo:
-      createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWells, rolloverPercentageAllWells, pathToInitialVideo, imagesToClassifyHalfDiameter)
+      createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWells, rolloverPercentageAllWells, pathToInitialVideo, int(resizeCropDimension/2))
     
     if comparePredictedResultsToManual:
     
@@ -337,24 +333,3 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
         print("no true rollovers in this dataset")
         
       return [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo]
-
-
-if __name__ == '__main__':
-
-  __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
-
-  path                         = sys.argv[1]
-  videoName                    = sys.argv[2]
-  pathToInitialVideo           = sys.argv[3]
-  # Size of image on which DL algorithm will be applied will be 2*(recenterImageWindow-int(2*recenterImageWindow/6))
-  recenterImageWindow          = int(sys.argv[4])    if len(sys.argv) >= 5 else 24
-  # Approximate half dimension of validation video and of initial image extracted
-  imagesToClassifyHalfDiameter = int(sys.argv[5])    if len(sys.argv) >= 6 else 100
-  # Window of median rolling mean applied on rollover detected
-  medianRollingMean            = int(sys.argv[6])    if len(sys.argv) >= 7 else 5
-  validationVideo              = int(sys.argv[7])    if len(sys.argv) >= 8 else 1
-  comparePredictedResultsToManual = int(sys.argv[8]) if len(sys.argv) >= 9 else 0
-  
-
-  detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, recenterImageWindow, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, imagesToClassifyHalfDiameter)
-  

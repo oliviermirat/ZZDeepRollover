@@ -2,7 +2,7 @@ import json
 import os
 import cv2
 import shutil
-import videoFormatConversion.zzVideoReading as zzVideoReading
+import zzVideoReading as zzVideoReading
 from pandas import DataFrame, read_csv
 import pandas as pd
 import numpy as np
@@ -12,6 +12,9 @@ import sys
 def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassifyHalfDiameter, backgroundRemoval=0):
   
   recenterImageWindow = 0
+  
+  if not(os.path.isdir('initialImages')):
+    os.mkdir('initialImages')
   
   if (os.path.isdir('initialImages/'+videoName)):
     shutil.rmtree('initialImages/'+videoName)

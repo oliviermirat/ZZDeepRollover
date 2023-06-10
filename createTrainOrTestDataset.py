@@ -6,8 +6,8 @@ import numpy as np
 import sys
 from imageTransformFunctions import recenterImageOnEyes
 
-def createTrainOrTestDataset(inputFolder, videoName, outputFolder, nbRotations, recenter, recenterOrNot=True):
-
+def createTrainOrTestDataset(inputFolder, videoName, outputFolder, recenterImageWindow):
+  
   def getNbElems(path):
     dirNormal   = path + '/normal'
     dirRollover = path + '/rollover'
@@ -15,7 +15,7 @@ def createTrainOrTestDataset(inputFolder, videoName, outputFolder, nbRotations, 
     nbRolloverImages = len([name for name in os.listdir(dirRollover) if os.path.isfile(os.path.join(dirRollover, name))])
     minNbImages = min(nbNormalImages, nbRolloverImages)
     return [nbNormalImages, nbRolloverImages, minNbImages]
-    
+  
   def getAllImagesPath(src_path):
     imgPaths = []
     normal_images = os.listdir(src_path)
@@ -24,57 +24,31 @@ def createTrainOrTestDataset(inputFolder, videoName, outputFolder, nbRotations, 
       imgPaths.append(imgPath)
     return imgPaths
 
-  def create_new_rotated_image(src_path, videoName, dst_path, nbRotations, k, recenter, recenterOrNot):
+  def create_new_recentered_image(src_path, videoName, dst_path, k, recenter):
     kk = k
     img = cv2.imread(src_path)
-    if recenter and recenterOrNot:
+    if recenter:
       img = recenterImageOnEyes(img,recenter)
-    rows = len(img)
-    cols = len(img[0])
-    for i, angle_rotation in enumerate(np.arange(0,360,360/nbRotations)):
-      M = cv2.getRotationMatrix2D((cols/2,rows/2),angle_rotation,1)
-      dst = cv2.warpAffine(img,M,(cols,rows))
-      scaleD = int(cols/6)
-      dst = dst[scaleD:(rows-scaleD), scaleD:(rows-scaleD)]
-      cv2.imwrite(dst_path+"/"+videoName+'_'+str(kk)+".png", dst)
-      kk = kk + 1
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    cv2.imwrite(dst_path+"/"+videoName+'_'+str(kk)+".png", img)
+    kk = kk + 1
     return kk
-
-  def chooseImagesAndAugment(inputPath, videoName, outputPath, nbRotations, recenter, recenterOrNot):
-    k = 0
-    
-    [nbNormalImages, nbRolloverImages, minNbImages] = getNbElems(inputPath + videoName)
-    
-    permutNormalImages   = np.random.permutation(nbNormalImages)
-    permutRolloverImages = np.random.permutation(nbRolloverImages)
-    
-    imgNormalPaths = getAllImagesPath(inputPath + videoName + '/normal')
-    imgRolloverPaths = getAllImagesPath(inputPath + videoName + '/rollover')
-    
-    dst_path_normal   = outputPath + '/normal'
-    dst_path_rollover = outputPath + '/rollover'
-    
-    for i in range(0, minNbImages):
-      image_path_normal   = imgNormalPaths[permutNormalImages[i]]
-      image_path_rollover = imgRolloverPaths[permutRolloverImages[i]]
-      k = create_new_rotated_image(image_path_normal, videoName, dst_path_normal, nbRotations, k, recenter, recenterOrNot)
-      k = create_new_rotated_image(image_path_rollover, videoName, dst_path_rollover, nbRotations, k, recenter, recenterOrNot)
-
-  chooseImagesAndAugment(inputFolder, videoName, outputFolder, nbRotations, recenter, recenterOrNot)
   
-if __name__ == '__main__':
-
-  __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
-
-  inputFolder = sys.argv[1]
-  videoName = sys.argv[2]
-  outputFolder = sys.argv[3]
-  nbRotations = int(sys.argv[4])
-  recenter = int(sys.argv[5])
+  k = 0
   
-  if len(sys.argv) == 7:
-    recenterOrNot = int(sys.argv[6])
-  else:
-    recenterOrNot = 1
+  [nbNormalImages, nbRolloverImages, minNbImages] = getNbElems(inputFolder + videoName)
   
-  createTrainOrTestDataset(inputFolder, videoName, outputFolder, nbRotations, recenter, recenterOrNot)
+  permutNormalImages   = np.random.permutation(nbNormalImages)
+  permutRolloverImages = np.random.permutation(nbRolloverImages)
+  
+  imgNormalPaths = getAllImagesPath(inputFolder + videoName + '/normal')
+  imgRolloverPaths = getAllImagesPath(inputFolder + videoName + '/rollover')
+  
+  dst_path_normal   = outputFolder + '/normal'
+  dst_path_rollover = outputFolder + '/rollover'
+
+  for i in range(0, minNbImages):
+    image_path_normal   = imgNormalPaths[permutNormalImages[i]]
+    image_path_rollover = imgRolloverPaths[permutRolloverImages[i]]
+    k = create_new_recentered_image(image_path_normal, videoName, dst_path_normal, k, recenterImageWindow)
+    k = create_new_recentered_image(image_path_rollover, videoName, dst_path_rollover, k, recenterImageWindow)

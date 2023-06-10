@@ -1,5 +1,26 @@
 import os
 import glob
+import shutil
+
+def removeIpynbCheckpointsFromTrainingDataset():
+  if (os.path.isdir('trainingDataset/.ipynb_checkpoints')):
+    shutil.rmtree('trainingDataset/.ipynb_checkpoints')
+  if (os.path.isdir('trainingDataset/train/.ipynb_checkpoints')):
+    shutil.rmtree('trainingDataset/train/.ipynb_checkpoints')
+  if (os.path.isdir('trainingDataset/val/.ipynb_checkpoints')):
+    shutil.rmtree('trainingDataset/val/.ipynb_checkpoints')
+
+def refreshTrainingDataset():
+  if (os.path.isdir('trainingDataset')):
+    shutil.rmtree('trainingDataset')
+  os.mkdir('trainingDataset')
+  os.mkdir('trainingDataset/train')
+  os.mkdir('trainingDataset/train/normal')
+  os.mkdir('trainingDataset/train/rollover')
+  os.mkdir('trainingDataset/val')
+  os.mkdir('trainingDataset/val/normal')
+  os.mkdir('trainingDataset/val/rollover')
+ 
 
 def cleanDataset(folder_path, file_extension):
 
@@ -19,6 +40,9 @@ def cleanDataset(folder_path, file_extension):
 
 
 def cleanModel(folder_path):
+  
+  if not(os.path.isdir('model')):
+    os.mkdir('model')
   
   # List all files and directories in the given folder
   items = os.listdir(folder_path)

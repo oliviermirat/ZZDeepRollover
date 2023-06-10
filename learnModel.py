@@ -1,199 +1,181 @@
-### Getting the data
-
-from __future__ import absolute_import, division, print_function
-import matplotlib.pylab as plt
-import tensorflow as tf
-import tensorflow_hub as hub
-from tensorflow.python.keras import layers
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.optim import lr_scheduler
+import torch.backends.cudnn as cudnn
 import numpy as np
+import torchvision
+from torchvision import datasets, models, transforms
+import matplotlib.pyplot as plt
+import time
 import os
-tf.VERSION
-import cv2
-import sys
+from tempfile import TemporaryDirectory
+from PIL import Image
+import random
+to_pil = transforms.ToPILImage()
 
-from imageTransformFunctions import recenterImageOnEyes
+showImagesUsedForTraining = False
 
-from numpy.random import randint
+#####
 
-def newDataAugmentation(img, resizeSize):
+cudnn.benchmark = True
+plt.ion()   # interactive mode
 
-  try:
-    
-    # Random rotation
-    angle_rotation = randint(0,360)
-    rows = len(img)
-    cols = len(img[0])
-    M = cv2.getRotationMatrix2D((cols/2,rows/2),angle_rotation,1)
-    dst = cv2.warpAffine(img,M,(cols,rows))
-    scaleD = int(cols/6)
-    dst = dst[scaleD:(rows-scaleD), scaleD:(rows-scaleD)]
+def rotate_image(image):
+  angle = random.uniform(0, 360)
+  return image.rotate(angle)
 
-    # Random pixel intensity change
-    changePixelIntensity = randint(-20, 20)
-    dst = np.maximum(dst.astype(int)-changePixelIntensity,0).astype('uint8')
-    
-    # Random crop
-    img = dst
-    crop = randint(5, 10) #24
-    rows = len(img)
-    cols = len(img[0])
-    xmin = crop
-    ymin = crop
-    xmax = cols - crop
-    ymax = rows - crop
-    img = img[ymin:ymax, xmin:xmax]
-    dst = img
-    
-    # All images must be of the same size
-    im1 = cv2.resize(dst, resizeSize)
-    
-    # cv2.imshow("im1", im1)
-    # cv2.waitKey(0)
-    
-  except:
-    im1 = 0
+def learnModel(epochsNb, modelFolder, randomResizeCropDimension):
   
-  return im1
+  data_transforms = {
+      'train': transforms.Compose([
+          transforms.Lambda(rotate_image),
+          # transforms.HorizontalFlip(),
+          # transforms.VerticalFlip(),
+          # transforms.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+          transforms.Resize(randomResizeCropDimension),
+          # transforms.RandomResizedCrop(randomResizeCropDimension),
+          transforms.ToTensor(),
+          transforms.Normalize([0.485], [0.229])
+      ]),
+      'val': transforms.Compose([
+          transforms.Resize(randomResizeCropDimension),
+          # transforms.CenterCrop(randomResizeCropDimension),
+          transforms.ToTensor(),
+          transforms.Normalize([0.485], [0.229])
+      ]),
+  }
 
-
-def learnModel(data_root, epochsNb, modelFolder, newDataAugm=True):
-
-  classifier_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/classification/2"
-  feature_extractor_url = "https://tfhub.dev/google/imagenet/mobilenet_v2_100_224/feature_vector/2"
-
-  image_generator = tf.keras.preprocessing.image.ImageDataGenerator(rescale=1/255)
-  image_data = image_generator.flow_from_directory(str(data_root))
-
-
-  ### Getting the classifier
-
-  def classifier(x):
-    classifier_module = hub.Module(classifier_url)
-    return classifier_module(x)
-    
-  IMAGE_SIZE = hub.get_expected_image_size(hub.Module(classifier_url))
-
-  classifier_layer = layers.Lambda(classifier, input_shape = IMAGE_SIZE+[3])
-  classifier_model = tf.keras.Sequential([classifier_layer])
-  classifier_model.summary()
-
-  image_data = image_generator.flow_from_directory(str(data_root), target_size=IMAGE_SIZE)
-  for image_batch,label_batch in image_data:
-    print("Image batch shape: ", image_batch.shape)
-    print("Labe batch shape: ", label_batch.shape)
-    break
-
-  from tensorflow.python.keras import backend as K
-  sess = K.get_session()
-  init = tf.global_variables_initializer()
-
-  sess.run(init)
-
-
-  ### Transfer Learning
-
-  def feature_extractor(x):
-    feature_extractor_module = hub.Module(feature_extractor_url)
-    return feature_extractor_module(x)
-
-  IMAGE_SIZE = hub.get_expected_image_size(hub.Module(feature_extractor_url))
-
-  image_data = image_generator.flow_from_directory(str(data_root), target_size=IMAGE_SIZE)
-  for image_batch, label_batch in image_data:
-    print("Image batch shape: ", image_batch.shape)
-    print("Labe batch shape: ", label_batch.shape)
-    break
-
-  features_extractor_layer = layers.Lambda(feature_extractor, input_shape=IMAGE_SIZE+[3])
-
-  features_extractor_layer.trainable = False
-
-  model = tf.keras.Sequential([
-    features_extractor_layer,
-    layers.Dense(image_data.num_classes, activation='softmax')
-  ])
-  model.summary()
-
-  init = tf.global_variables_initializer()
-  sess.run(init)
-
-  ### Train the model
-
-  model.compile(
-    optimizer=tf.train.AdamOptimizer(), 
-    loss='categorical_crossentropy',
-    metrics=['accuracy'])
-
-  checkpoint_path = modelFolder + "/cp.ckpt"
-  checkpoint_dir = os.path.dirname(checkpoint_path)
-
-  # Create checkpoint callback
-  cp_callback = tf.keras.callbacks.ModelCheckpoint(checkpoint_path,save_weights_only=True,verbose=1)
-
-
-  # if True:
-
-  directory_path = data_root + '/normal/'
-  tot1 = []
-  directory = os.fsencode(directory_path)
-  for file in os.listdir(directory):
-    name = os.fsdecode(file)
-    if name.endswith(".png"): 
-      filename = directory_path + name
-      im = cv2.imread(filename)
-      if newDataAugm:
-        im1 = newDataAugmentation(im, (224,224))
-      else:
-        im1 = cv2.resize(im,(224,224))
-      if type(im1) != int:
-        im1 = np.array(im1, dtype=np.float32) / 255.0
-        tot1.append(im1)
-  directory_path = data_root + '/rollover/'
-  tot2 = []
-  directory = os.fsencode(directory_path)
-  for file in os.listdir(directory):
-    name = os.fsdecode(file)
-    if name.endswith(".png"): 
-      filename = directory_path + name
-      im = cv2.imread(filename)
-      if newDataAugm:
-        im1 = newDataAugmentation(im, (224,224))
-      else:
-        im1 = cv2.resize(im,(224,224))
-      if type(im1) != int:
-        im1 = np.array(im1, dtype=np.float32) / 255.0
-        tot2.append(im1)
-  tot = np.concatenate((tot1, tot2), axis=0)
-  # tot = np.array(tot)
-
-  n1 = len(tot1)
-  n2 = len(tot2)
-  lab1 = np.zeros((n1))
-  lab2 = np.full((n2), 1)
-  lab = np.concatenate((lab1, lab2), axis=0)
-  from tensorflow.python.keras.utils import to_categorical
-  y_binary = to_categorical(lab)
-
-  model.fit(x=tot, y=y_binary, epochs=epochsNb, callbacks = [cp_callback])
-
-  # else:
-    
-    # steps_per_epoch = image_data.samples//image_data.batch_size
-    # model.fit((item for item in image_data), epochs=epochsNb, 
-                      # steps_per_epoch=steps_per_epoch,
-                      # callbacks = [cp_callback])
-
-if __name__ == '__main__':
-
-  __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
-
-  data_root = sys.argv[1]
-  epochsNb = int(sys.argv[2])
-  modelFolder = sys.argv[3]
+  image_datasets = {x: datasets.ImageFolder(os.path.join('trainingDataset', x), data_transforms[x]) for x in ['train', 'val']}
+  dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4, shuffle=True, num_workers=4) for x in ['train', 'val']}
   
-  if len(sys.argv) == 5:
-    newDataAugm = int(sys.argv[4])
-  else:
-    newDataAugm = 0
+  dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
+  class_names = image_datasets['train'].classes
+
+  device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   
-  learnModel(data_root, epochsNb, modelFolder, newDataAugm)
+  
+  def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
+    since = time.time()
+
+    # Create a temporary directory to save training checkpoints
+    with TemporaryDirectory() as tempdir:
+        best_model_params_path = os.path.join(tempdir, 'best_model_params.pt')
+    
+        torch.save(model.state_dict(), best_model_params_path)
+        best_acc = 0.0
+
+        for epoch in range(num_epochs):
+            print(f'Epoch {epoch}/{num_epochs - 1}')
+            print('-' * 10)
+
+            # Each epoch has a training and validation phase
+            for phase in ['train', 'val']:
+                if phase == 'train':
+                    model.train()  # Set model to training mode
+                else:
+                    model.eval()   # Set model to evaluate mode
+
+                running_loss = 0.0
+                running_corrects = 0
+
+                # Iterate over data.
+                for inputs, labels in dataloaders[phase]:
+                
+                    inputs = inputs.to(device)
+                    labels = labels.to(device)
+                    
+                    if showImagesUsedForTraining:
+                      for inputImg in inputs:
+                        pil_image = to_pil(inputImg)
+                        pil_image.show()
+
+                    # zero the parameter gradients
+                    optimizer.zero_grad()
+
+                    # forward
+                    # track history if only in train
+                    with torch.set_grad_enabled(phase == 'train'):
+                        
+                        outputs = model(inputs)
+                        _, preds = torch.max(outputs, 1)
+                        loss = criterion(outputs, labels)
+
+                        # backward + optimize only if in training phase
+                        if phase == 'train':
+                            loss.backward()
+                            optimizer.step()
+
+                    # statistics
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds == labels.data)
+                if phase == 'train':
+                    scheduler.step()
+
+                epoch_loss = running_loss / dataset_sizes[phase]
+                epoch_acc = running_corrects.double() / dataset_sizes[phase]
+
+                print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+
+                # deep copy the model
+                if phase == 'val' and epoch_acc > best_acc:
+                    best_acc = epoch_acc
+                    torch.save(model.state_dict(), best_model_params_path)
+
+            print()
+
+        time_elapsed = time.time() - since
+        print(f'Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s')
+        print(f'Best val Acc: {best_acc:4f}')
+
+        # load best model weights
+        model.load_state_dict(torch.load(best_model_params_path))
+    
+    return model
+  
+  def visualize_model(model, num_images=6):
+    was_training = model.training
+    model.eval()
+    images_so_far = 0
+    fig = plt.figure()
+
+    with torch.no_grad():
+        for i, (inputs, labels) in enumerate(dataloaders['val']):
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+
+            for j in range(inputs.size()[0]):
+                images_so_far += 1
+                ax = plt.subplot(num_images//2, 2, images_so_far)
+                ax.axis('off')
+                ax.set_title(f'predicted: {class_names[preds[j]]}')
+                imshow(inputs.cpu().data[j])
+
+                if images_so_far == num_images:
+                    model.train(mode=was_training)
+                    return
+        model.train(mode=was_training)
+  
+  model_ft = models.resnet50(pretrained=True)
+  num_ftrs = model_ft.fc.in_features
+  model_ft.fc = nn.Linear(num_ftrs, 2)
+
+  model_ft = model_ft.to(device)
+
+  criterion = nn.CrossEntropyLoss()
+
+  # Observe that all parameters are being optimized
+  optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
+
+  # Decay LR by a factor of 0.1 every 7 epochs
+  exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
+  
+  model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler, num_epochs=epochsNb)
+  
+  if False:
+    visualize_model(model_ft)
+  
+  torch.save(model_ft.state_dict(), os.path.join('model', 'model.pth'))

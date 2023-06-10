@@ -3,6 +3,7 @@ model/*
 __pycache__/
 
 initialImages/*
+trainingDataset/
 trainingDataset/normal/*
 trainingDataset/rollover/*
 
