@@ -23,7 +23,8 @@ import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support, classification_report
 from imageTransformFunctions import recenterImageOnEyes
 from createValidationVideoWithNewZZversion import createValidationVideoWithNewZZversion
-# import pdb
+
+showImagesUsedForTraining = False
 
 def runModelOnFrames(frames, model, resizeCropDimension):
   
@@ -36,6 +37,17 @@ def runModelOnFrames(frames, model, resizeCropDimension):
     transforms.Normalize([0.485], [0.229])
   ])
   
+  if showImagesUsedForTraining:
+    if False:
+      for inputImg in [frames[i] for i in range(0, len(frames))]:
+        # pil_image = to_pil((inputImg*255).astype(np.uint8))
+        pil_image = to_pil(inputImg)
+        pil_image.show()
+    else:
+      for inputImg in torch.stack([data_transform(frames[i].astype(np.uint8)) for i in range(0, len(frames))]):
+        pil_image = to_pil(inputImg)
+        pil_image.show()
+  
   outputs = model(torch.stack([data_transform(frames[i].astype(np.uint8)) for i in range(0, len(frames))]))
   _, result = torch.max(outputs, 1)
   
@@ -45,7 +57,7 @@ def runModelOnFrames(frames, model, resizeCropDimension):
   return [binary, probabilities]
 
 
-def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, recenterImageWindow, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, resizeCropDimension, backgroundRemoval=0):
+def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, resizeCropDimension, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, backgroundRemoval=0):
   
   if (medianRollingMean % 2 == 0):
     sys.exit("medianRollingMean must be an odd number")
@@ -132,15 +144,18 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, rec
                   yEnd = len(frame) - 1
                 frame = frame[yStart:yEnd, xStart:xEnd]
                 if ret == True:
-                  if recenterImageWindow:
-                    frame = recenterImageOnEyes(frame,recenterImageWindow)
+                  if resizeCropDimension:
+                    frame = recenterImageOnEyes(frame,int(resizeCropDimension/2))
+                  if len(frame) != resizeCropDimension or len(frame[0]) != resizeCropDimension:
+                    print("PROBLEM HERE: had to resize image before feeding it to the model!")
+                    frame = cv2.resize(frame,(resizeCropDimension,resizeCropDimension))
                   # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                  rows = len(frame)
-                  cols = len(frame[0])
-                  scaleD = int(cols/6)
-                  frame = frame[scaleD:(rows-scaleD), scaleD:(rows-scaleD)]
-                  frame = cv2.resize(frame,(224,224))
-                  frame = np.array(frame, dtype=np.float32) / 255.0
+                  # rows = len(frame)
+                  # cols = len(frame[0])
+                  # scaleD = int(cols/6)
+                  # frame = frame[scaleD:(rows-scaleD), scaleD:(rows-scaleD)]
+                  # frame = cv2.resize(frame,(224,224))
+                  # frame = np.array(frame, dtype=np.float32) / 255.0
                   frames.append(frame)
                   framesNumber.append(k)
                   

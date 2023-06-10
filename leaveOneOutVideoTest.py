@@ -60,7 +60,7 @@ if __name__ == '__main__':
     # Testing the model on the entire video
     validationVideo = 1
     pathToRawVideo  = os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid + '.avi') if os.path.exists(os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid + '.avi')) else os.path.join(os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid), testingVid + '.seq')
-    [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFramesWithNewZZversion(testingVid, pathToRawVideos + '/', medianRollingMean, resizeCropDimension, 1, validationVideo, pathToRawVideo, imagesToClassifyHalfDiameter)
+    [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFramesWithNewZZversion(testingVid, pathToRawVideos + '/', medianRollingMean, resizeCropDimension, 1, validationVideo, pathToRawVideo)
     
     if totalTrueNormal:
       normalClassedAsRolloPercent  = (normalClassedAsRollo/totalTrueNormal) * 100

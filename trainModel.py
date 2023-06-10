@@ -1,7 +1,6 @@
 from createInitialImagesNewZZ import createInitialImagesNewZZ
 from createTrainOrTestDataset import createTrainOrTestDataset
 from learnModel import learnModel
-from detectRolloverFramesWithNewZZversion import detectRolloverFramesWithNewZZversion
 import subprocess
 from subprocess import Popen
 import numpy as np
