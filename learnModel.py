@@ -11,8 +11,8 @@ import time
 import os
 from tempfile import TemporaryDirectory
 from PIL import Image
-import random
 to_pil = transforms.ToPILImage()
+from dataTransformationAugmentations import get_data_transforms
 
 showImagesUsedForTraining = False
 
@@ -21,31 +21,10 @@ showImagesUsedForTraining = False
 cudnn.benchmark = True
 plt.ion()   # interactive mode
 
-def rotate_image(image):
-  angle = random.uniform(0, 360)
-  return image.rotate(angle)
-
-def learnModel(epochsNb, modelFolder, randomResizeCropDimension):
+def learnModel(epochsNb, modelFolder, resizeCropDimension):
   
-  data_transforms = {
-      'train': transforms.Compose([
-          transforms.Lambda(rotate_image),
-          # transforms.HorizontalFlip(),
-          # transforms.VerticalFlip(),
-          # transforms.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
-          transforms.Resize(randomResizeCropDimension),
-          # transforms.RandomResizedCrop(randomResizeCropDimension),
-          transforms.ToTensor(),
-          transforms.Normalize([0.485], [0.229])
-      ]),
-      'val': transforms.Compose([
-          transforms.Resize(randomResizeCropDimension),
-          # transforms.CenterCrop(randomResizeCropDimension),
-          transforms.ToTensor(),
-          transforms.Normalize([0.485], [0.229])
-      ]),
-  }
-
+  data_transforms = get_data_transforms(resizeCropDimension)
+  
   image_datasets = {x: datasets.ImageFolder(os.path.join('trainingDataset', x), data_transforms[x]) for x in ['train', 'val']}
   dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4, shuffle=True, num_workers=4) for x in ['train', 'val']}
   

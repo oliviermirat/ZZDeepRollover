@@ -9,7 +9,7 @@ import numpy as np
 import csv
 import sys
 
-def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassifyHalfDiameter, initialImagesFolder, backgroundRemoval=0):
+def createInitialImages(videoName, rolloverFrameFile, path, imagesToClassifyHalfDiameter, initialImagesFolder, backgroundRemoval=0):
   
   if not(os.path.isdir(initialImagesFolder)):
     os.mkdir(initialImagesFolder)

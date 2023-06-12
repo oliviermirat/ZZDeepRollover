@@ -1,7 +1,7 @@
-from createInitialImagesNewZZ import createInitialImagesNewZZ
+from createInitialImages import createInitialImages
 from createTrainOrTestDataset import createTrainOrTestDataset
 from learnModel import learnModel
-from detectRolloverFramesWithNewZZversion import detectRolloverFramesWithNewZZversion
+from detectRolloverFrames import detectRolloverFrames
 import subprocess
 from subprocess import Popen
 import numpy as np
@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
   if generateInitialImages:
     for video in videos:
-      createInitialImagesNewZZ(video, 'rolloverManualClassification.json', pathToRawVideos + '/', imagesToClassifyHalfDiameter, initialImagesFolder)
+      createInitialImages(video, 'rolloverManualClassification.json', pathToRawVideos + '/', imagesToClassifyHalfDiameter, initialImagesFolder)
 
   for idx, video in enumerate(videos):
 
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # Testing the model on the entire video
     validationVideo = 1
     pathToRawVideo  = os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid + '.avi') if os.path.exists(os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid + '.avi')) else os.path.join(os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid), testingVid + '.seq')
-    [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFramesWithNewZZversion(testingVid, pathToRawVideos + '/', medianRollingMean, resizeCropDimension, 1, validationVideo, pathToRawVideo, imagesToClassifyHalfDiameter)
+    [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFrames(testingVid, pathToRawVideos + '/', medianRollingMean, resizeCropDimension, 1, validationVideo, pathToRawVideo, imagesToClassifyHalfDiameter, os.path.join('model', 'model.pth'))
     
     if totalTrueNormal:
       normalClassedAsRolloPercent  = (normalClassedAsRollo/totalTrueNormal) * 100

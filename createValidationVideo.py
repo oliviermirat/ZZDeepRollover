@@ -8,7 +8,7 @@ import sys
 import json
 import pandas as pd
 
-def createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWells, resultsPercentages, pathToInitialVideo, imagesToClassifyHalfDiameter):
+def createValidationVideo(videoName, path, rolloversMedFiltAllWells, resultsPercentages, pathToInitialVideo, imagesToClassifyHalfDiameter):
 
   ### Loading the images and applying the classifier on them
 
@@ -158,15 +158,4 @@ def createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWe
     out.release()
     out3.release()
     out4.release()
-
-
-if __name__ == '__main__':
-
-  __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
-
-  videoName = sys.argv[1]
-  path = sys.argv[2]
-  pathToInitialVideo = sys.argv[3]
-  
-  createValidationVideoWithNewZZversion(videoName,path,[],[], pathToInitialVideo)
   

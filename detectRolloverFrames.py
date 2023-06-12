@@ -22,20 +22,21 @@ import json
 import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support, classification_report
 from imageTransformFunctions import recenterImageOnEyes
-from createValidationVideoWithNewZZversion import createValidationVideoWithNewZZversion
+from createValidationVideo import createValidationVideo
+
+from dataTransformationAugmentations import get_data_transforms
 
 showImagesUsedForTraining = False
 
 def runModelOnFrames(frames, model, resizeCropDimension):
   
   frames = np.array(frames)
-      
+  
+  data_transformOriginal = get_data_transforms(resizeCropDimension)['val']
+  
   data_transform = transforms.Compose([
     transforms.ToPILImage(),
-    transforms.Resize(resizeCropDimension),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485], [0.229])
-  ])
+  ] + data_transformOriginal.transforms)
   
   if showImagesUsedForTraining:
     if False:
@@ -57,7 +58,7 @@ def runModelOnFrames(frames, model, resizeCropDimension):
   return [binary, probabilities]
 
 
-def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, resizeCropDimension, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, imagesToClassifyHalfDiameter, backgroundRemoval=0):
+def detectRolloverFrames(videoName, path, medianRollingMean, resizeCropDimension, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, imagesToClassifyHalfDiameter, pathToModel, backgroundRemoval=0):
   
   if (medianRollingMean % 2 == 0):
     sys.exit("medianRollingMean must be an odd number")
@@ -66,7 +67,7 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, res
   model = models.resnet50()
   num_ftrs = model.fc.in_features
   model.fc = nn.Linear(num_ftrs, 2)
-  model.load_state_dict(torch.load(os.path.join('model', 'model.pth')))
+  model.load_state_dict(torch.load(pathToModel))
   model.eval()
   
   ### Background extraction
@@ -195,7 +196,7 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, res
     np.savetxt(os.path.join(os.path.join(path, videoName), 'rolloverPercentages.txt'), rolloverPercentageAllWells, fmt='%f')
     
     if validationVideo:
-      createValidationVideoWithNewZZversion(videoName, path, rolloversMedFiltAllWells, rolloverPercentageAllWells, pathToInitialVideo, int(resizeCropDimension/2))
+      createValidationVideo(videoName, path, rolloversMedFiltAllWells, rolloverPercentageAllWells, pathToInitialVideo, int(resizeCropDimension/2))
     
     if comparePredictedResultsToManual:
     
