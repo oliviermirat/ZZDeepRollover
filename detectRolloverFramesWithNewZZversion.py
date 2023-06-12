@@ -57,7 +57,7 @@ def runModelOnFrames(frames, model, resizeCropDimension):
   return [binary, probabilities]
 
 
-def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, resizeCropDimension, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, backgroundRemoval=0):
+def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, resizeCropDimension, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, imagesToClassifyHalfDiameter, backgroundRemoval=0):
   
   if (medianRollingMean % 2 == 0):
     sys.exit("medianRollingMean must be an odd number")
@@ -101,16 +101,16 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, res
       if ywell < 0:
         ywell = 0
       videoPath2 = pathToInitialVideo
+      frames = []
+      framesNumber = []
+      cap = zzVideoReading.VideoCapture(videoPath2)
+      videoLength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+      rollovers = np.zeros((videoLength))
+      rolloverPercentage = np.zeros((videoLength))
+      allBinary        = np.array([])
+      allProbabilities = np.array([])
       if (len(wellPoissMouv[i])):
         if (len(wellPoissMouv[i][0])):
-          cap = zzVideoReading.VideoCapture(videoPath2)
-          videoLength = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-          rollovers = np.zeros((videoLength))
-          rolloverPercentage = np.zeros((videoLength))
-          frames = []
-          framesNumber = []
-          allBinary        = np.array([])
-          allProbabilities = np.array([])
           nbMouv = len(wellPoissMouv[i][0])
           # going through each movement for the well
           for j in range(0,nbMouv):
@@ -123,39 +123,40 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, res
               while (k <= BoutEnd):
                 ret, frame = cap.read()
                 
-                if backgroundRemoval:
-                  minPixelDiffForBackExtract = 15
-                  frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                  putToWhite = ( frame.astype('int32') >= (background.astype('int32') - minPixelDiffForBackExtract) )
-                  frame[putToWhite] = int(np.mean(np.mean(frame)))
-                  frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)                
-                
-                yStart = int(ywell+item['HeadY'][k-BoutStart]-int(resizeCropDimension/2))
-                yEnd   = int(ywell+item['HeadY'][k-BoutStart]+int(resizeCropDimension/2))
-                xStart = int(xwell+item['HeadX'][k-BoutStart]-int(resizeCropDimension/2))
-                xEnd   = int(xwell+item['HeadX'][k-BoutStart]+int(resizeCropDimension/2))
-                if xStart < 0:
-                  xStart = 0
-                if yStart < 0:
-                  yStart = 0
-                if xEnd >= len(frame[0]):
-                  xEnd = len(frame[0]) - 1
-                if yEnd >= len(frame):
-                  yEnd = len(frame) - 1
-                frame = frame[yStart:yEnd, xStart:xEnd]
                 if ret == True:
-                  if resizeCropDimension:
-                    frame = recenterImageOnEyes(frame,int(resizeCropDimension/2))
-                  if len(frame) != resizeCropDimension or len(frame[0]) != resizeCropDimension:
-                    print("PROBLEM HERE: had to resize image before feeding it to the model!")
-                    frame = cv2.resize(frame,(resizeCropDimension,resizeCropDimension))
-                  # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                  # rows = len(frame)
-                  # cols = len(frame[0])
-                  # scaleD = int(cols/6)
-                  # frame = frame[scaleD:(rows-scaleD), scaleD:(rows-scaleD)]
-                  # frame = cv2.resize(frame,(224,224))
-                  # frame = np.array(frame, dtype=np.float32) / 255.0
+                
+                  if backgroundRemoval:
+                    minPixelDiffForBackExtract = 15
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    putToWhite = ( frame.astype('int32') >= (background.astype('int32') - minPixelDiffForBackExtract) )
+                    frame[putToWhite] = int(np.mean(np.mean(frame)))
+                    frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)                
+                  
+                  yStart = int(ywell+item['HeadY'][k-BoutStart]-int(imagesToClassifyHalfDiameter))
+                  yEnd   = int(ywell+item['HeadY'][k-BoutStart]+int(imagesToClassifyHalfDiameter))
+                  xStart = int(xwell+item['HeadX'][k-BoutStart]-int(imagesToClassifyHalfDiameter))
+                  xEnd   = int(xwell+item['HeadX'][k-BoutStart]+int(imagesToClassifyHalfDiameter))
+                  
+                  if xStart < 0:
+                    xStart = 0
+                  if yStart < 0:
+                    yStart = 0
+                  if xEnd >= len(frame[0]):
+                    xEnd = len(frame[0])
+                  if yEnd >= len(frame):
+                    yEnd = len(frame)
+                  
+                  if yStart == 0:
+                    yEnd = 2 * imagesToClassifyHalfDiameter
+                  if xStart == 0:
+                    xEnd = 2 * imagesToClassifyHalfDiameter
+                  if yEnd == len(frame):
+                    yStart = len(frame) - 2 * imagesToClassifyHalfDiameter
+                  if xEnd == len(frame[0]):
+                    xStart = len(frame[0]) - 2 * imagesToClassifyHalfDiameter
+                  
+                  frame = frame[yStart:yEnd, xStart:xEnd]
+                  frame = recenterImageOnEyes(frame, int(resizeCropDimension/2))
                   frames.append(frame)
                   framesNumber.append(k)
                   
@@ -169,20 +170,23 @@ def detectRolloverFramesWithNewZZversion(videoName, path, medianRollingMean, res
                   break
                 k = k + 1
         
-        if len(frames) > 0:
-          [binary, probabilities] = runModelOnFrames(frames, model, resizeCropDimension)
-          allBinary               = np.append(allBinary, binary)
-          allProbabilities        = np.append(allProbabilities, probabilities)
-        
-        rollovers[framesNumber] = allBinary
-        rolloverPercentage[framesNumber] = allProbabilities
-        rolloversMedFiltSeries = (pd.Series(rollovers)).rolling(medianRollingMean).median()
-        for i in range(0, medianRollingMean):
-          rolloversMedFiltSeries[i] = 0
-        rolloversMedFiltSeries = np.roll(rolloversMedFiltSeries,int(-((medianRollingMean-1)/2)))
-        rolloversAllWells.append(rollovers)
-        rolloversMedFiltAllWells.append(rolloversMedFiltSeries)
-        rolloverPercentageAllWells.append(rolloverPercentage)
+          if len(frames) > 0:
+            [binary, probabilities] = runModelOnFrames(frames, model, resizeCropDimension)
+            allBinary               = np.append(allBinary, binary)
+            allProbabilities        = np.append(allProbabilities, probabilities)
+          
+          if len(framesNumber) > 0:
+            rollovers[framesNumber] = allBinary
+            rolloverPercentage[framesNumber] = allProbabilities
+          
+      rolloversMedFiltSeries = (pd.Series(rollovers)).rolling(medianRollingMean).median()
+      for i in range(0, medianRollingMean):
+        rolloversMedFiltSeries[i] = 0
+      rolloversMedFiltSeries = np.roll(rolloversMedFiltSeries,int(-((medianRollingMean-1)/2)))
+      
+      rolloversAllWells.append(rollovers)
+      rolloversMedFiltAllWells.append(rolloversMedFiltSeries)
+      rolloverPercentageAllWells.append(rolloverPercentage)
     
     rolloversAllWells = np.array(rolloversAllWells)
     rolloversMedFiltAllWells = np.array(rolloversMedFiltAllWells)

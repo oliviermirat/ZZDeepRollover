@@ -10,20 +10,26 @@ from cleanFolders import refreshTrainingDataset, cleanModel, removeIpynbCheckpoi
 
 generateInitialImages = True
 generateTrainingDataset = True
+localComputer = True
+
+initialImagesFolder = 'initialImages' if localComputer else 'drive/MyDrive/initialImages'
 
 # Size of image on which DL algorithm will be applied
-resizeCropDimension          = 68
+resizeCropDimension          = 34
 # Approximate half dimension of validation video and of initial image extracted
-imagesToClassifyHalfDiameter = 100
+imagesToClassifyHalfDiameter = 50
 # Number of epoch for DL training
-epochsNbTraining=10 #15
+epochsNbTraining = 1 if localComputer else 10
 # Window of median rolling mean applied on rollover detected
-medianRollingMean=5
+medianRollingMean = 5
 
-videos = ['4wellsZebrafishLarvaeEscapeResponses_1', '4wellsZebrafishLarvaeEscapeResponses_2']
-#videos = ['20190727-13-2-1', '20190427-1-2-5', '20190503-2-2-3', '20190727-6-2-4', '20190503-1-2-5', '20190427-3-2-2', '20190427-1-2-2', '20190427-4-2-1', '20190503-4-2-7', '20190727-2-2-1', '20190727-9-2-7', '20190427-1-2-1', '20190427-5-2-1', '20190727-10-2-7', '20190727-3-2-2', '20190427-2-2-6', '20190727-11-2-7', '20190727-4-2-6', '20190427-2-2-8', '20190503-2-2-1', '20190727-1-2-3', '20190727-5-2-7']
+file_path = 'listOfVideosToTakeIntoAccount.txt'
+with open(file_path, 'r') as file:
+  lines = file.readlines()
+  videos = [line.strip() for line in lines]
+print("Videos taken into account:", videos)
 
-pathToRawVideos = 'ZZoutput'
+pathToRawVideos = 'ZZoutput' if localComputer else 'drive/MyDrive/ZZoutputNew'
 
 ###
 
@@ -33,7 +39,7 @@ if __name__ == '__main__':
   
   if generateInitialImages:
     for video in videos:
-      createInitialImagesNewZZ(video, 'rolloverManualClassification.json', pathToRawVideos + '/', imagesToClassifyHalfDiameter)
+      createInitialImagesNewZZ(video, 'rolloverManualClassification.json', pathToRawVideos + '/', imagesToClassifyHalfDiameter, initialImagesFolder)
 
 
   trainingVid = videos.copy()
@@ -44,7 +50,7 @@ if __name__ == '__main__':
 
   # Creating learning dataset
   for vidTrain in trainingVid:
-    createTrainOrTestDataset('initialImages/', vidTrain, os.path.join('trainingDataset','train'), int(resizeCropDimension/2))
+    createTrainOrTestDataset(initialImagesFolder + '/', vidTrain, os.path.join('trainingDataset','train'), int(resizeCropDimension/2))
 
   # Transfert learning
   removeIpynbCheckpointsFromTrainingDataset()

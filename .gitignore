@@ -9,3 +9,6 @@ trainingDataset/rollover/*
 
 ZZoutputOld/
 ZZoutputNew/
+ZZoutputNew_NoBoutDetection/
+
+listOfVideosToTakeIntoAccount.txt

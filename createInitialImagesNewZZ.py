@@ -9,18 +9,16 @@ import numpy as np
 import csv
 import sys
 
-def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassifyHalfDiameter, backgroundRemoval=0):
+def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassifyHalfDiameter, initialImagesFolder, backgroundRemoval=0):
   
-  recenterImageWindow = 0
+  if not(os.path.isdir(initialImagesFolder)):
+    os.mkdir(initialImagesFolder)
   
-  if not(os.path.isdir('initialImages')):
-    os.mkdir('initialImages')
-  
-  if (os.path.isdir('initialImages/'+videoName)):
-    shutil.rmtree('initialImages/'+videoName)
-  os.mkdir('initialImages/'+videoName)
-  os.mkdir('initialImages/'+videoName+'/rollover')
-  os.mkdir('initialImages/'+videoName+'/normal')
+  if (os.path.isdir(initialImagesFolder+'/'+videoName)):
+    shutil.rmtree(initialImagesFolder+'/'+videoName)
+  os.mkdir(initialImagesFolder+'/'+videoName)
+  os.mkdir(initialImagesFolder+'/'+videoName+'/rollover')
+  os.mkdir(initialImagesFolder+'/'+videoName+'/normal')
 
   rolloverFrameFile = path + videoName + '/' + rolloverFrameFile
 
@@ -108,25 +106,25 @@ def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassif
                   xEnd = len(frame[0]) - 1
                 if yEnd >= len(frame):
                   yEnd = len(frame) - 1
+                
+                if yStart == 0:
+                  yEnd = 2 * imagesToClassifyHalfDiameter
+                if xStart == 0:
+                  xEnd = 2 * imagesToClassifyHalfDiameter
+                if yEnd == len(frame):
+                  yStart = len(frame) - 2 * imagesToClassifyHalfDiameter
+                if xEnd == len(frame[0]):
+                  xStart = len(frame[0]) - 2 * imagesToClassifyHalfDiameter
+                
                 frame = frame[yStart:yEnd, xStart:xEnd]
-                if ret == True:
-                  if recenterImageWindow:
-                    frame = recenterImageOnEyes(frame,recenterImageWindow)
-                  rows = len(frame)
-                  cols = len(frame[0])
-                  scaleD = int(cols/6)
-                  frame = frame[scaleD:(rows-scaleD), scaleD:(rows-scaleD)]
-                  frame = cv2.resize(frame,(224,224))
-                  # frame = np.array(frame, dtype=np.float32) / 255.0
                 
                 if ret == True:
-                  # print(["frame:",k," ; corresponds to m:",m])
                   # Saving image
                   if not(k in inBetween):
                     if k in rollover:
-                      cv2.imwrite('initialImages/' + videoName + '/rollover/img' + str(m) + '.png', frame)
+                      cv2.imwrite(initialImagesFolder + '/' + videoName + '/rollover/img' + str(m) + '.png', frame)
                     else:
-                      cv2.imwrite('initialImages/' + videoName + '/normal/img' + str(m) + '.png', frame)
+                      cv2.imwrite(initialImagesFolder + '/' + videoName + '/normal/img' + str(m) + '.png', frame)
                   m = m + 1
                   
                 else: 
@@ -134,13 +132,3 @@ def createInitialImagesNewZZ(videoName, rolloverFrameFile, path, imagesToClassif
                 k = k + 1
     
     cap.release()
-
-
-if __name__ == '__main__':
-
-  __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
-  
-  videoName = sys.argv[1]
-  rolloverFrameFile = sys.argv[2]
-  path = sys.argv[3]
-  createInitialImages(videoName, rolloverFrameFile, path)
