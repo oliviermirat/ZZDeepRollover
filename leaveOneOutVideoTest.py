@@ -1,13 +1,13 @@
-from createInitialImages import createInitialImages
-from createTrainOrTestDataset import createTrainOrTestDataset
-from learnModel import learnModel
-from detectRolloverFrames import detectRolloverFrames
+from zzdeeprollover.cleanFolders import refreshTrainingDataset, cleanModel, removeIpynbCheckpointsFromTrainingDataset
+from zzdeeprollover.createInitialImages import createInitialImages
+from zzdeeprollover.createTrainOrTestDataset import createTrainOrTestDataset
+from zzdeeprollover.learnModel import learnModel
+from zzdeeprollover.detectRolloverFrames import detectRolloverFrames
 import subprocess
 from subprocess import Popen
 import numpy as np
 import pandas as pd
 import os
-from cleanFolders import refreshTrainingDataset, cleanModel, removeIpynbCheckpointsFromTrainingDataset
 
 generateInitialImages = True
 generateTrainingDataset = True

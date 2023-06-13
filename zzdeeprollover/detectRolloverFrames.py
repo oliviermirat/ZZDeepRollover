@@ -1,3 +1,7 @@
+from zzdeeprollover.imageTransformFunctions import recenterImageOnEyes
+from zzdeeprollover.createValidationVideo import createValidationVideo
+import zzdeeprollover.zzVideoReading as zzVideoReading
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -11,8 +15,6 @@ from tempfile import TemporaryDirectory
 from PIL import Image
 to_pil = transforms.ToPILImage()
 
-# from __future__ import absolute_import, division, print_function
-import zzVideoReading as zzVideoReading
 import matplotlib.pylab as plt
 import numpy as np
 import os
@@ -21,10 +23,9 @@ import sys
 import json
 import pandas as pd
 from sklearn.metrics import precision_recall_fscore_support, classification_report
-from imageTransformFunctions import recenterImageOnEyes
-from createValidationVideo import createValidationVideo
 
-from dataTransformationAugmentations import get_data_transforms
+
+from zzdeeprollover.dataTransformationAugmentations import get_data_transforms
 
 showImagesUsedForTraining = False
 

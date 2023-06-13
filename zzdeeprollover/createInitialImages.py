@@ -1,8 +1,8 @@
+import zzdeeprollover.zzVideoReading as zzVideoReading
 import json
 import os
 import cv2
 import shutil
-import zzVideoReading as zzVideoReading
 from pandas import DataFrame, read_csv
 import pandas as pd
 import numpy as np

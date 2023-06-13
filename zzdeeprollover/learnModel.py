@@ -12,7 +12,7 @@ import os
 from tempfile import TemporaryDirectory
 from PIL import Image
 to_pil = transforms.ToPILImage()
-from dataTransformationAugmentations import get_data_transforms
+from zzdeeprollover.dataTransformationAugmentations import get_data_transforms
 
 showImagesUsedForTraining = False
 

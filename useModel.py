@@ -1,4 +1,4 @@
-from detectRolloverFrames import detectRolloverFrames
+from zzdeeprollover.detectRolloverFrames import detectRolloverFrames
 import random
 import os
 
