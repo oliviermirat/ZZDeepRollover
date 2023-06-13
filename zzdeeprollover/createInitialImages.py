@@ -9,7 +9,7 @@ import numpy as np
 import csv
 import sys
 
-def createInitialImages(videoName, rolloverFrameFile, path, imagesToClassifyHalfDiameter, initialImagesFolder, backgroundRemoval=0):
+def createInitialImages(videoName, rolloverFrameFile, pathToZZoutput, imagesToClassifyHalfDiameter, initialImagesFolder, backgroundRemoval=0):
   
   if not(os.path.isdir(initialImagesFolder)):
     os.mkdir(initialImagesFolder)
@@ -20,14 +20,14 @@ def createInitialImages(videoName, rolloverFrameFile, path, imagesToClassifyHalf
   os.mkdir(initialImagesFolder+'/'+videoName+'/rollover')
   os.mkdir(initialImagesFolder+'/'+videoName+'/normal')
 
-  rolloverFrameFile = path + videoName + '/' + rolloverFrameFile
+  rolloverFrameFile = pathToZZoutput + videoName + '/' + rolloverFrameFile
 
   csvFileName = videoName
 
-  videoPath = path + videoName + '/results_' + videoName + '.txt'
+  videoPath = pathToZZoutput + videoName + '/results_' + videoName + '.txt'
   
   if backgroundRemoval:
-    backgroundPath = path + videoName + '/background.png'
+    backgroundPath = pathToZZoutput + videoName + '/background.png'
     background     = cv2.imread(backgroundPath)
     background     = cv2.cvtColor(background, cv2.COLOR_BGR2GRAY)
   
@@ -38,9 +38,9 @@ def createInitialImages(videoName, rolloverFrameFile, path, imagesToClassifyHalf
 
     # opening super structure
     file = open(videoPath, 'r')
-    j = json.loads(file.read())
-    wellPoissMouv = j['wellPoissMouv']
-    wellPositions = j['wellPositions']
+    jsonFile = json.loads(file.read())
+    wellPoissMouv = jsonFile['wellPoissMouv']
+    wellPositions = jsonFile['wellPositions']
     nbWell = len(wellPoissMouv)
     m = 0
     
@@ -56,7 +56,7 @@ def createInitialImages(videoName, rolloverFrameFile, path, imagesToClassifyHalf
       for rangeBoundary in inBetweenRanges:
         for value in range(rangeBoundary[0], rangeBoundary[1]+1):
           inBetween.append(value)
-          
+      
       print(rollover)
       print(inBetween)
       
@@ -67,10 +67,23 @@ def createInitialImages(videoName, rolloverFrameFile, path, imagesToClassifyHalf
       if ywell < 0:
         ywell = 0
       
-      if os.path.exists(path+videoName+'/'+videoName+'.avi'):
-        videoPath2 = path+videoName+'/'+videoName+'.avi'
+      if 'pathToOriginalVideo' in jsonFile:
+        videoPath2 = jsonFile['pathToOriginalVideo']
+        if not(os.path.exists(videoPath2)):
+          if 'alternativePathToOriginalVideo' in jsonFile:
+            videoPath2 = jsonFile['alternativePathToOriginalVideo']
+            if not(os.path.exists(videoPath2)):
+              raise("fix video path issue in result file")
+          else:
+            raise("fix video path issue in result file")
       else:
-        videoPath2 = path+videoName+'/'+videoName+'/'+videoName+'.seq'
+        if 'alternativePathToOriginalVideo' in jsonFile:
+          videoPath2 = jsonFile['alternativePathToOriginalVideo']
+          if not(os.path.exists(videoPath2)):
+            raise("fix video path issue in result file")
+        else:
+          raise("fix video path issue in result file")
+      
       if (len(wellPoissMouv[i])):
         if (len(wellPoissMouv[i][0])):
           cap = zzVideoReading.VideoCapture(videoPath2)

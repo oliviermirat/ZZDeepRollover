@@ -1,3 +1,4 @@
+from zzdeeprollover.addAlternativePathToOriginalVideo import addAlternativePathToOriginalVideo
 from zzdeeprollover.cleanFolders import refreshTrainingDataset, cleanModel, removeIpynbCheckpointsFromTrainingDataset
 from zzdeeprollover.createInitialImages import createInitialImages
 from zzdeeprollover.createTrainOrTestDataset import createTrainOrTestDataset
@@ -24,13 +25,18 @@ epochsNbTraining = 1 if localComputer else 10
 # Window of median rolling mean applied on rollover detected
 medianRollingMean = 5
 
+pathToZZoutput = 'ZZoutputNew' if localComputer else 'drive/MyDrive/ZZoutputNew'
+
 file_path = 'listOfVideosToTakeIntoAccount.txt'
 with open(file_path, 'r') as file:
   lines = file.readlines()
   videos = [line.strip() for line in lines]
-print("Videos taken into account:", videos)
 
-pathToRawVideos = 'ZZoutputNew' if localComputer else 'drive/MyDrive/ZZoutputNew'
+# If launched on a computer other than the one used to launch the tracking, the paths to the original raw videos saved in the result file are incorrect: they are thus corrected with the lines below
+if not(localComputer):
+  alternativePathToFolderContainingOriginalVideos = "drive/MyDrive/rawVideos/"
+  for video in videos:
+    addAlternativePathToOriginalVideo(pathToZZoutput, video, alternativePathToFolderContainingOriginalVideos)
 
 ###
 
@@ -40,14 +46,15 @@ if __name__ == '__main__':
 
   if generateInitialImages:
     for video in videos:
-      createInitialImages(video, 'rolloverManualClassification.json', pathToRawVideos + '/', imagesToClassifyHalfDiameter, initialImagesFolder)
+      createInitialImages(video, 'rolloverManualClassification.json', pathToZZoutput + '/', imagesToClassifyHalfDiameter, initialImagesFolder)
 
   for idx, video in enumerate(videos):
 
     trainingVid = videos.copy()
     testingVid  = trainingVid.pop(idx)
     
-    print("\nTestingVid:", testingVid, "\n")
+    print("Videos used for training:", trainingVid)
+    print("Videos used for testing:", testingVid)
     
     if generateTrainingDataset:
       refreshTrainingDataset()
@@ -66,8 +73,7 @@ if __name__ == '__main__':
     
     # Testing the model on the entire video
     validationVideo = 1
-    pathToRawVideo  = os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid + '.avi') if os.path.exists(os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid + '.avi')) else os.path.join(os.path.join(os.path.join(pathToRawVideos, testingVid), testingVid), testingVid + '.seq')
-    [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFrames(testingVid, pathToRawVideos + '/', medianRollingMean, resizeCropDimension, 1, validationVideo, pathToRawVideo, imagesToClassifyHalfDiameter, os.path.join('model', 'model.pth'))
+    [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFrames(testingVid, pathToZZoutput + '/', medianRollingMean, resizeCropDimension, 1, validationVideo, imagesToClassifyHalfDiameter, os.path.join('model', 'model.pth'))
     
     if totalTrueNormal:
       normalClassedAsRolloPercent  = (normalClassedAsRollo/totalTrueNormal) * 100

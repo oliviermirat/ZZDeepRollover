@@ -2,6 +2,7 @@ from zzdeeprollover.cleanFolders import refreshTrainingDataset, cleanModel, remo
 from zzdeeprollover.createInitialImages import createInitialImages
 from zzdeeprollover.createTrainOrTestDataset import createTrainOrTestDataset
 from zzdeeprollover.learnModel import learnModel
+from zzdeeprollover.addAlternativePathToOriginalVideo import addAlternativePathToOriginalVideo
 import subprocess
 from subprocess import Popen
 import numpy as np
@@ -9,11 +10,10 @@ import pandas as pd
 import random
 import os
 
-generateInitialImages = True
-generateTrainingDataset = True
 localComputer = True
 
-initialImagesFolder = 'initialImages' if localComputer else 'drive/MyDrive/initialImages'
+generateInitialImages = True
+generateTrainingDataset = True
 
 # Size of image on which DL algorithm will be applied
 resizeCropDimension          = 34
@@ -24,12 +24,20 @@ epochsNbTraining = 1 if localComputer else 10
 # Window of median rolling mean applied on rollover detected
 medianRollingMean = 5
 
+initialImagesFolder = 'initialImages' if localComputer else 'drive/MyDrive/initialImages'
+
+pathToZZoutput = 'ZZoutputNew' if localComputer else 'drive/MyDrive/ZZoutputNew'
+
 file_path = 'listOfVideosToTakeIntoAccount.txt'
 with open(file_path, 'r') as file:
   lines = file.readlines()
   videos = [line.strip() for line in lines]
 
-pathToRawVideos = 'ZZoutputNew' if localComputer else 'drive/MyDrive/ZZoutputNew'
+# If launched on a computer other than the one used to launch the tracking, the paths to the original raw videos saved in the result file are incorrect: they are thus corrected with the lines below
+if not(localComputer):
+  alternativePathToFolderContainingOriginalVideos = "drive/MyDrive/rawVideos/"
+  for video in videos:
+    addAlternativePathToOriginalVideo(pathToZZoutput, video, alternativePathToFolderContainingOriginalVideos)
 
 ###
 
@@ -39,7 +47,7 @@ if __name__ == '__main__':
   
   if generateInitialImages:
     for video in videos:
-      createInitialImages(video, 'rolloverManualClassification.json', pathToRawVideos + '/', imagesToClassifyHalfDiameter, initialImagesFolder)
+      createInitialImages(video, 'rolloverManualClassification.json', pathToZZoutput + '/', imagesToClassifyHalfDiameter, initialImagesFolder)
   
   trainingVid = videos.copy()
 

@@ -59,7 +59,7 @@ def runModelOnFrames(frames, model, resizeCropDimension):
   return [binary, probabilities]
 
 
-def detectRolloverFrames(videoName, path, medianRollingMean, resizeCropDimension, comparePredictedResultsToManual, validationVideo, pathToInitialVideo, imagesToClassifyHalfDiameter, pathToModel, backgroundRemoval=0):
+def detectRolloverFrames(videoName, pathToZZoutput, medianRollingMean, resizeCropDimension, comparePredictedResultsToManual, validationVideo, imagesToClassifyHalfDiameter, pathToModel, backgroundRemoval=0):
   
   if (medianRollingMean % 2 == 0):
     sys.exit("medianRollingMean must be an odd number")
@@ -73,22 +73,22 @@ def detectRolloverFrames(videoName, path, medianRollingMean, resizeCropDimension
   
   ### Background extraction
   if backgroundRemoval:
-    backgroundPath = path + videoName + '/background.png'
+    backgroundPath = pathToZZoutput + videoName + '/background.png'
     background     = cv2.imread(backgroundPath)
     background     = cv2.cvtColor(background, cv2.COLOR_BGR2GRAY)
 
   ### Loading the images and applying the classifier on them
 
-  videoPath = os.path.join(os.path.join(path, videoName), 'results_' + videoName + '.txt')
+  videoPath = os.path.join(os.path.join(pathToZZoutput, videoName), 'results_' + videoName + '.txt')
 
   if (os.path.isfile(videoPath)):
     
     # Applying rollover classifier to each frame and saving the results in a txt file
     
     file = open(videoPath, 'r')
-    j = json.loads(file.read())
-    wellPoissMouv = j['wellPoissMouv']
-    wellPositions = j['wellPositions']
+    jsonFile = json.loads(file.read())
+    wellPoissMouv = jsonFile['wellPoissMouv']
+    wellPositions = jsonFile['wellPositions']
     nbWell = len(wellPositions)
     rolloversAllWells = []
     rolloversMedFiltAllWells = []
@@ -102,7 +102,24 @@ def detectRolloverFrames(videoName, path, medianRollingMean, resizeCropDimension
         xwell = 0
       if ywell < 0:
         ywell = 0
-      videoPath2 = pathToInitialVideo
+      
+      if 'pathToOriginalVideo' in jsonFile:
+        videoPath2 = jsonFile['pathToOriginalVideo']
+        if not(os.path.exists(videoPath2)):
+          if 'alternativePathToOriginalVideo' in jsonFile:
+            videoPath2 = jsonFile['alternativePathToOriginalVideo']
+            if not(os.path.exists(videoPath2)):
+              raise("fix video path issue in result file")
+          else:
+            raise("fix video path issue in result file")
+      else:
+        if 'alternativePathToOriginalVideo' in jsonFile:
+          videoPath2 = jsonFile['alternativePathToOriginalVideo']
+          if not(os.path.exists(videoPath2)):
+            raise("fix video path issue in result file")
+        else:
+          raise("fix video path issue in result file")
+      
       frames = []
       framesNumber = []
       cap = zzVideoReading.VideoCapture(videoPath2)
@@ -193,11 +210,11 @@ def detectRolloverFrames(videoName, path, medianRollingMean, resizeCropDimension
     rolloversAllWells = np.array(rolloversAllWells)
     rolloversMedFiltAllWells = np.array(rolloversMedFiltAllWells)
     cap.release()
-    np.savetxt(os.path.join(os.path.join(path, videoName), 'rolloverClassified.txt'), rolloversMedFiltAllWells, fmt='%d')
-    np.savetxt(os.path.join(os.path.join(path, videoName), 'rolloverPercentages.txt'), rolloverPercentageAllWells, fmt='%f')
+    np.savetxt(os.path.join(os.path.join(pathToZZoutput, videoName), 'rolloverClassified.txt'), rolloversMedFiltAllWells, fmt='%d')
+    np.savetxt(os.path.join(os.path.join(pathToZZoutput, videoName), 'rolloverPercentages.txt'), rolloverPercentageAllWells, fmt='%f')
     
     if validationVideo:
-      createValidationVideo(videoName, path, rolloversMedFiltAllWells, rolloverPercentageAllWells, pathToInitialVideo, int(resizeCropDimension/2))
+      createValidationVideo(videoName, pathToZZoutput, rolloversMedFiltAllWells, rolloverPercentageAllWells, videoPath2, int(resizeCropDimension/2))
     
     if comparePredictedResultsToManual:
     
@@ -230,7 +247,7 @@ def detectRolloverFrames(videoName, path, medianRollingMean, resizeCropDimension
       # Printing manual classifications of rollovers
       
       print("\nManual classification:")
-      rolloverFrameFile = os.path.join(os.path.join(path, videoName), 'rolloverManualClassification.json')
+      rolloverFrameFile = os.path.join(os.path.join(pathToZZoutput, videoName), 'rolloverManualClassification.json')
       fileRollover = open(rolloverFrameFile, 'r')
       rolloverFrame = json.loads(fileRollover.read())
       

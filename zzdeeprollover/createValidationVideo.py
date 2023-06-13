@@ -8,11 +8,11 @@ import sys
 import json
 import pandas as pd
 
-def createValidationVideo(videoName, path, rolloversMedFiltAllWells, resultsPercentages, pathToInitialVideo, imagesToClassifyHalfDiameter):
+def createValidationVideo(videoName, pathToZZoutput, rolloversMedFiltAllWells, resultsPercentages, pathToInitialVideo, imagesToClassifyHalfDiameter):
 
   ### Loading the images and applying the classifier on them
 
-  videoPath = os.path.join(os.path.join(path, videoName), 'results_' + videoName + '.txt')
+  videoPath = os.path.join(os.path.join(pathToZZoutput, videoName), 'results_' + videoName + '.txt')
   
   resizeScale = 3
   frame_width = 60
@@ -28,7 +28,7 @@ def createValidationVideo(videoName, path, rolloversMedFiltAllWells, resultsPerc
   y_offset               = 0
   x_offset               = 0
   
-  rolloverFrameFile = os.path.join(os.path.join(path, videoName), 'rolloverManualClassification.json')
+  rolloverFrameFile = os.path.join(os.path.join(pathToZZoutput, videoName), 'rolloverManualClassification.json')
   exists = os.path.isfile(rolloverFrameFile)
   if exists:
     videoPath2 = pathToInitialVideo
@@ -62,12 +62,12 @@ def createValidationVideo(videoName, path, rolloversMedFiltAllWells, resultsPerc
     trueRolloverAllWells = []
     trueMaybeAllWells = []
   
-  out2 = cv2.VideoWriter(os.path.join(os.path.join(path, videoName), 'rolloverValidationAllFrames.avi'), cv2.VideoWriter_fourcc('M','J','P','G'), 10, (resizeScale*frame_width + ext1, resizeScale*frame_height + ext2))
+  out2 = cv2.VideoWriter(os.path.join(os.path.join(pathToZZoutput, videoName), 'rolloverValidationAllFrames.avi'), cv2.VideoWriter_fourcc('M','J','P','G'), 10, (resizeScale*frame_width + ext1, resizeScale*frame_height + ext2))
   
   if len(rolloversMedFiltAllWells):
-    out = cv2.VideoWriter(os.path.join(os.path.join(path, videoName), 'validationOnlyFramesDetectedAsRollover.avi') ,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (resizeScale*frame_width + ext1, resizeScale*frame_height + ext2))
-    out3 = cv2.VideoWriter(os.path.join(os.path.join(path, videoName), 'validationOnlyFramesDetectedAsNormal.avi') ,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (resizeScale*frame_width + ext1, resizeScale*frame_height + ext2))
-    out4 = cv2.VideoWriter(os.path.join(os.path.join(path, videoName), 'validationOnlyErrors.avi'), cv2.VideoWriter_fourcc('M','J','P','G'), 10, (resizeScale*frame_width + ext1, resizeScale*frame_height + ext2))
+    out = cv2.VideoWriter(os.path.join(os.path.join(pathToZZoutput, videoName), 'validationOnlyFramesDetectedAsRollover.avi') ,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (resizeScale*frame_width + ext1, resizeScale*frame_height + ext2))
+    out3 = cv2.VideoWriter(os.path.join(os.path.join(pathToZZoutput, videoName), 'validationOnlyFramesDetectedAsNormal.avi') ,cv2.VideoWriter_fourcc('M','J','P','G'), 10, (resizeScale*frame_width + ext1, resizeScale*frame_height + ext2))
+    out4 = cv2.VideoWriter(os.path.join(os.path.join(pathToZZoutput, videoName), 'validationOnlyErrors.avi'), cv2.VideoWriter_fourcc('M','J','P','G'), 10, (resizeScale*frame_width + ext1, resizeScale*frame_height + ext2))
 
   if (os.path.isfile(videoPath)):
     
