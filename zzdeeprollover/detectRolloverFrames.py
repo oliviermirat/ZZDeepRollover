@@ -53,8 +53,11 @@ def runModelOnFrames(frames, model, resizeCropDimension):
   outputs = model(torch.stack([data_transform(frames[i].astype(np.uint8)) for i in range(0, len(frames))]))
   _, result = torch.max(outputs, 1)
   
+  proba = torch.sigmoid(outputs)
+  proba = proba / proba.sum(dim=1, keepdim=True)
+  
   binary = result
-  probabilities = outputs.detach().numpy()[:, 0]
+  probabilities = proba.detach().numpy()[:, 1]
       
   return [binary, probabilities]
 
