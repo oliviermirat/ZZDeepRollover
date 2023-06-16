@@ -1,9 +1,26 @@
 from torchvision import transforms
+from PIL import Image
+import numpy as np
 import random
+import cv2
 
 def rotate_image(image):
-  angle = random.uniform(0, 360)
-  return image.rotate(angle)
+  if True:
+    width, height = image.size
+    image = np.array(image)
+    resizeCrop = len(image)
+    bigImg = np.zeros((width + 2*resizeCrop, height + 2*resizeCrop, 3), dtype='uint8')
+    bigImg[:, :, :] = np.median(image)
+    bigImg[resizeCrop:len(bigImg[0])-resizeCrop, resizeCrop:len(bigImg)-resizeCrop] = image
+    angle = random.uniform(0, 360)
+    rows = len(bigImg)
+    cols = len(bigImg[0])
+    M = cv2.getRotationMatrix2D((cols/2,rows/2), angle, 1)
+    bigImg = cv2.warpAffine(bigImg, M, (cols,rows))
+    return Image.fromarray(bigImg[resizeCrop:len(bigImg)-resizeCrop, resizeCrop:len(bigImg[0])-resizeCrop])
+  else:
+    angle = random.uniform(0, 360)
+    return image.rotate(angle)
   
 def crop_image(image, maxCrop):
   if maxCrop:

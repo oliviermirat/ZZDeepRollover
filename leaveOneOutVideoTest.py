@@ -28,7 +28,7 @@ medianRollingMean = 5
 if True:
   learningParameters = {}
 else:
-  learningParameters = {'maxCrop': 1, 'brightness_limit': 0.05, 'contrast_limit': 0.05, 'invert_probability': 0, 'sharpness_probability': 0}
+  learningParameters = {'maxCrop': 2, 'brightness_limit': 0.05, 'contrast_limit': 0.05, 'invert_probability': 0, 'sharpness_probability': 0}
 
 showImagesUsedForTraining = False
 
@@ -80,7 +80,10 @@ if __name__ == '__main__':
     
     # Testing the model on the entire video
     validationVideo = 1
-    [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFrames(testingVid, pathToZZoutput + '/', medianRollingMean, resizeCropDimension, 1, validationVideo, imagesToClassifyHalfDiameter, os.path.join('model', 'model.pth'))
+    if 'maxCrop' in learningParameters:
+      [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFrames(testingVid, pathToZZoutput + '/', medianRollingMean, resizeCropDimension - learningParameters['maxCrop'], 1, validationVideo, imagesToClassifyHalfDiameter, os.path.join('model', 'model.pth'))
+    else:
+      [normalClassedAsRollo, totalTrueNormal, rolloClassedAsRollo, totalTrueRollo] = detectRolloverFrames(testingVid, pathToZZoutput + '/', medianRollingMean, resizeCropDimension, 1, validationVideo, imagesToClassifyHalfDiameter, os.path.join('model', 'model.pth'))
     
     if totalTrueNormal:
       normalClassedAsRolloPercent  = (normalClassedAsRollo/totalTrueNormal) * 100
