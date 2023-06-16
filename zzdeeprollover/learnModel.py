@@ -14,16 +14,12 @@ from PIL import Image
 to_pil = transforms.ToPILImage()
 from zzdeeprollover.dataTransformationAugmentations import get_data_transforms
 
-showImagesUsedForTraining = False
-
-#####
-
 cudnn.benchmark = True
 plt.ion()   # interactive mode
 
-def learnModel(epochsNb, modelFolder, resizeCropDimension):
+def learnModel(epochsNb, modelFolder, resizeCropDimension, learningParameters={}, showImagesUsedForTraining=False):
   
-  data_transforms = get_data_transforms(resizeCropDimension)
+  data_transforms = get_data_transforms(resizeCropDimension, learningParameters)
   
   image_datasets = {x: datasets.ImageFolder(os.path.join('trainingDataset', x), data_transforms[x]) for x in ['train', 'val']}
   dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4, shuffle=True, num_workers=4) for x in ['train', 'val']}
@@ -67,6 +63,7 @@ def learnModel(epochsNb, modelFolder, resizeCropDimension):
                     if showImagesUsedForTraining:
                       for inputImg in inputs:
                         pil_image = to_pil(inputImg)
+                        pil_image = pil_image.resize((300, 300))
                         pil_image.show()
 
                     # zero the parameter gradients

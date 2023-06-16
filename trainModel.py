@@ -24,6 +24,13 @@ epochsNbTraining = 1 if localComputer else 10
 # Window of median rolling mean applied on rollover detected
 medianRollingMean = 5
 
+if True:
+  learningParameters = {}
+else:
+  learningParameters = {'maxCrop': 1, 'brightness_limit': 0.05, 'contrast_limit': 0.05, 'invert_probability': 0, 'sharpness_probability': 0}
+
+showImagesUsedForTraining = False
+
 initialImagesFolder = 'initialImages' if localComputer else 'drive/MyDrive/initialImages'
 
 pathToZZoutput = 'ZZoutputNew' if localComputer else 'drive/MyDrive/ZZoutputNew'
@@ -48,8 +55,6 @@ if __name__ == '__main__':
   if generateInitialImages:
     for video in videos:
       createInitialImages(video, 'rolloverManualClassification.json', pathToZZoutput + '/', imagesToClassifyHalfDiameter, initialImagesFolder)
-  
-  trainingVid = videos.copy()
 
   if generateTrainingDataset:
     refreshTrainingDataset()
@@ -68,4 +73,4 @@ if __name__ == '__main__':
   
   # Transfert learning
   removeIpynbCheckpointsFromTrainingDataset()
-  learnModel(epochsNbTraining, 'model', resizeCropDimension)
+  learnModel(epochsNbTraining, 'model', resizeCropDimension, learningParameters, showImagesUsedForTraining)
