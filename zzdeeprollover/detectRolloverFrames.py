@@ -32,7 +32,7 @@ showImagesUsedForTraining = False
 def correctVideoPathIfNecessary(videoPath2):
   if videoPath2[:30] == '\\\\l2export\\iss02.wyart\\rawdata':
     videoPath2 = videoPath2.replace('\\', '/')
-    videoPath2.replace('//l2export/iss02.wyart/', '/network/lustre/iss02/wyart/')
+    videoPath2 = videoPath2.replace('//l2export/iss02.wyart/', '/network/lustre/iss02/wyart/')
   return videoPath2
 
 def runModelOnFrames(frames, model, resizeCropDimension):
