@@ -29,6 +29,12 @@ from zzdeeprollover.dataTransformationAugmentations import get_data_transforms
 
 showImagesUsedForTraining = False
 
+def correctVideoPathIfNecessary(videoPath2):
+  if videoPath2[:30] == '\\\\l2export\\iss02.wyart\\rawdata':
+    videoPath2 = videoPath2.replace('\\', '/')
+    videoPath2.replace('//l2export/iss02.wyart/', '/network/lustre/iss02/wyart/')
+  return videoPath2
+
 def runModelOnFrames(frames, model, resizeCropDimension):
   
   frames = np.array(frames)
@@ -107,25 +113,21 @@ def detectRolloverFrames(videoName, pathToZZoutput, medianRollingMean, resizeCro
         ywell = 0
       
       if 'pathToOriginalVideo' in jsonFile:
-        videoPath2 = jsonFile['pathToOriginalVideo']
+        videoPath2 = correctVideoPathIfNecessary(jsonFile['pathToOriginalVideo'])
         if not(os.path.exists(videoPath2)):
           if 'alternativePathToOriginalVideo' in jsonFile:
-            videoPath2 = jsonFile['alternativePathToOriginalVideo']
+            videoPath2 = correctVideoPathIfNecessary(jsonFile['alternativePathToOriginalVideo'])
             if not(os.path.exists(videoPath2)):
               raise("fix video path issue in result file")
           else:
             raise("fix video path issue in result file")
       else:
         if 'alternativePathToOriginalVideo' in jsonFile:
-          videoPath2 = jsonFile['alternativePathToOriginalVideo']
+          videoPath2 = correctVideoPathIfNecessary(jsonFile['alternativePathToOriginalVideo'])
           if not(os.path.exists(videoPath2)):
             raise("fix video path issue in result file")
         else:
           raise("fix video path issue in result file")
-      
-      if videoPath2[:30] == '\\\\l2export\\iss02.wyart\\rawdata':
-        videoPath2 = videoPath2.replace('\\', '/')
-        videoPath2.replace('//l2export/iss02.wyart/', '/network/lustre/iss02/wyart/')
       
       frames = []
       framesNumber = []
