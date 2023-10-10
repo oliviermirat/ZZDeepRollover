@@ -123,6 +123,10 @@ def detectRolloverFrames(videoName, pathToZZoutput, medianRollingMean, resizeCro
         else:
           raise("fix video path issue in result file")
       
+      if videoPath2[:30] == '\\\\l2export\\iss02.wyart\\rawdata':
+        videoPath2 = videoPath2.replace('\\', '/')
+        videoPath2.replace('//l2export/iss02.wyart/', '/network/lustre/iss02/wyart/')
+      
       frames = []
       framesNumber = []
       cap = zzVideoReading.VideoCapture(videoPath2)

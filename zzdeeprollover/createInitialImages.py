@@ -84,6 +84,10 @@ def createInitialImages(videoName, rolloverFrameFile, pathToZZoutput, imagesToCl
         else:
           raise("fix video path issue in result file")
       
+      if videoPath2[:30] == '\\\\l2export\\iss02.wyart\\rawdata':
+        videoPath2 = videoPath2.replace('\\', '/')
+        videoPath2.replace('//l2export/iss02.wyart/', '/network/lustre/iss02/wyart/')
+      
       if (len(wellPoissMouv[i])):
         if (len(wellPoissMouv[i][0])):
           cap = zzVideoReading.VideoCapture(videoPath2)
